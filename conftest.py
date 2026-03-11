@@ -8,3 +8,8 @@ from db_tables import metadata
 def in_memory_db():
     engine = create_engine("sqlite:///:memory:")
     metadata.create_all(engine)
+    return engine
+
+@pytest.fixture
+def session(in_memory_db):
+    yield sessionmaker(bind=in_memory_db)

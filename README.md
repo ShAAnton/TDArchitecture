@@ -32,10 +32,10 @@ pip install pytest
 pip install pytest sqlalchemy
 
 # for chapter 4+5
-pip install requirements.txt
+pip install -r requirements.txt
 
 # for chapter 6+
-pip install requirements.txt
+pip install -r requirements.txt
 pip install -e src/
 ```
 

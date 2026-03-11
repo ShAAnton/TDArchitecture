@@ -41,7 +41,7 @@ class Batch:
     def available_quantity(self) -> int:
         return self._purchased_quantity - self.allocated_quantity
 
-    def __gt__(self, other: Batch):
+    def __gt__(self, other):
         if self.eta is None:
             return False
         if other.eta is None:
