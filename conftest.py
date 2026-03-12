@@ -1,8 +1,9 @@
 import pytest
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, clear_mappers
+from orm import metadata, start_mappers
 
-from db_tables import metadata
+# from db_tables import metadata
 
 @pytest.fixture
 def in_memory_db():
@@ -12,4 +13,6 @@ def in_memory_db():
 
 @pytest.fixture
 def session(in_memory_db):
-    yield sessionmaker(bind=in_memory_db)
+    start_mappers()
+    yield sessionmaker(bind=in_memory_db)()
+    clear_mappers()

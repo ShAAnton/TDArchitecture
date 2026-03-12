@@ -6,7 +6,7 @@ https://github.com/python-leap/code/branches/all
 ## Requirements
 
 * docker with docker-compose
-* for chapters 1 and 2, and optionally for the rest: a local python3.7 virtualenv
+* for chapters 1 and 2, and optionally for the rest: a local python3.13 virtualenv
 
 
 ## Building the containers
@@ -23,18 +23,8 @@ make all # builds, brings containers up, runs tests
 ## Creating a local virtualenv (optional)
 
 ```sh
-python3.8 -m venv .venv && source .venv/bin/activate # or however you like to create virtualenvs
+python3.13 -m venv .venv && source .venv/bin/activate # or however you like to create virtualenvs
 
-# for chapter 1
-pip install pytest 
-
-# for chapter 2
-pip install pytest sqlalchemy
-
-# for chapter 4+5
-pip install -r requirements.txt
-
-# for chapter 6+
 pip install -r requirements.txt
 pip install -e src/
 ```
