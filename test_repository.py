@@ -1,5 +1,6 @@
 import model
 import repository
+import sqlalchemy
 
 def test_repository_can_save_a_batch(session):
     batch = model.Batch("batch1", "RUSTY-SOAPDISH", 100, eta=None)
@@ -9,7 +10,9 @@ def test_repository_can_save_a_batch(session):
     session.commit()
 
     sql_query = 'SELECT reference, sku, _purchased_quantity, eta FROM batches'
-    rows = list(session.execute(sql_query))
+    sql_query = sqlalchemy.text(sql_query)
+    rows = session.execute(sql_query)
+    rows = list(rows)
 
     assert rows == [("batch1", "RUSTY-SOAPDISH", 100, None)]
 
