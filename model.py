@@ -48,6 +48,9 @@ class Batch:
             return True
         return self.eta > other.eta
 
+    def __eq__(self, other):
+        return isinstance(other, Batch) and self.reference == other.reference
+
 def allocate(line: OrderLine, batches: list[Batch]):
     sorted_batches = sorted(batch for batch in batches if batch.can_allocate(line))
     for batch in sorted_batches:
