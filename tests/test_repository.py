@@ -43,9 +43,9 @@ def insert_and_return_batch(session, batch_id):
     [[batch_id]] = session.execute(sql_query, dict(reference=batch.reference))
     return batch_id, batch
 
-def insert_allocation(session, batch_id, order_id):
-    sql_insert = 'INSERT INTO allocations (batch_id, order_id)'\
-                 f'VALUES ("{batch_id}", "{order_id}")'
+def insert_allocation(session, batch_id, order_line_id):
+    sql_insert = 'INSERT INTO allocations (batch_id, order_line_id)'\
+                 f'VALUES ("{batch_id}", "{order_line_id}")'
     sql_insert = sqlalchemy.text(sql_insert)
     session.execute(sql_insert)
 
@@ -65,3 +65,36 @@ def test_repository_can_retrieve_a_batch_with_allocations(session):
     assert retrieved._allocations == {
         order_line,
     }
+
+def get_allocations(session, batch_id):
+    sql_select = ("SELECT order_id "
+                  "FROM allocations "
+                  "JOIN order_lines ON order_lines.id = allocations.order_line_id "
+                  "JOIN batches ON batches.id = allocations.batch_id "
+                  "WHERE batches.reference = :batch_id ")
+    sql_select = sqlalchemy.text(sql_select)
+    rows = list(
+        session.execute(
+            sql_select,
+            dict(batch_id=batch_id)
+        )
+    )
+
+    return {row[0] for row in rows}
+
+def test_updating_a_batch(session):
+    sku = "WEATHERED-BENCH"
+    order1 = model.OrderLine("order1", sku, 10)
+    order2 = model.OrderLine("order2", sku, 20)
+    batch = model.Batch("batch1", sku, 100, eta=None)
+    repo = repository.SQLAlchemyRepository(session)
+
+    batch.allocate(order1)
+    repo.add(batch)
+    session.commit()
+
+    batch.allocate(order2)
+    repo.add(batch)
+    session.commit()
+
+    assert get_allocations(session, "batch1") == {"order1", "order2"}
