@@ -20,7 +20,7 @@ def allocate_endpoint():
         request.json['sku'],
         request['quantity']
     )
-
+    #try not completed
     batch_ref = model.allocate(line, batches)
 
     return jsonify({'batch_ref': batch_ref}), 201
