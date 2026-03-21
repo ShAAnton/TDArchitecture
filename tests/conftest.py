@@ -23,26 +23,6 @@ def session(in_memory_db):
     clear_mappers()
 
 
-def wait_for_postgres_to_come_up(engine):
-    deadline = time.time() + 10
-    while time.time() < deadline:
-        try:
-            return engine.connect()
-        except OperationalError:
-            time.sleep(0.5)
-    pytest.fail("Postgres never came up")
-
-
-def wait_for_webapp_to_come_up():
-    deadline = time.time() + 10
-    url = config.get_api_url()
-    while time.time() < deadline:
-        try:
-            return requests.get(url)
-        except ConnectionError:
-            time.sleep(0.5)
-    pytest.fail("API never came up")
-
 @pytest.fixture(scope="session")
 def postgres_db():
     engine = create_engine(config.get_postgres_uri())
@@ -56,6 +36,26 @@ def postgres_session(postgres_db):
     orm.start_mappers()
     yield sessionmaker(bind=postgres_db)()
     clear_mappers()
+
+
+def wait_for_postgres_to_come_up(engine):
+    deadline = time.time() + 10
+    while time.time() < deadline:
+        try:
+            return engine.connect()
+        except OperationalError:
+            time.sleep(0.5)
+    pytest.fail("Postgres never came up")
+
+def wait_for_webapp_to_come_up():
+    deadline = time.time() + 10
+    url = config.get_api_url()
+    while time.time() < deadline:
+        try:
+            return requests.get(url)
+        except ConnectionError:
+            time.sleep(0.5)
+    pytest.fail("API never came up")
 
 
 @pytest.fixture
@@ -74,7 +74,7 @@ def add_stock(postgres_session):
                                      dict(ref=ref, sku=sku, qty=qty, eta=eta)
                                      )
             sql_select = orm.text(
-                'SELECT batch_id FROM batches '
+                'SELECT id FROM batches '
                 'WHERE reference = :ref '
                 'AND sku = :sku'
             )
@@ -96,7 +96,7 @@ def add_stock(postgres_session):
                                  dict(batch_id=batch_id))
         sql_delete = orm.text(
             'DELETE FROM batches '
-            'WHERE batch_id = :batch_id '
+            'WHERE id = :batch_id '
         )
         postgres_session.execute(sql_delete,
                                  dict(batch_id=batch_id))
@@ -111,6 +111,6 @@ def add_stock(postgres_session):
 
 @pytest.fixture
 def restart_api():
-    (Path(__file__).parent / "flask_app.py").touch()
-    time.sleep(0.5)
+    # (Path(__file__).parent / "flask_app.py").touch()
+    # time.sleep(0.5)
     wait_for_webapp_to_come_up()
