@@ -47,9 +47,3 @@ def test_raises_out_of_stock_exception_if_cannot_allocate():
         allocate(OrderLine("order2", "SMALL-FORK", 1), [batch])
 
 
-# def test_prefers_warehouse_batches_to_shipments():
-#     pytest.fail("todo")
-#
-#
-# def test_prefers_earlier_batches():
-#     pytest.fail("todo")
