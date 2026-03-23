@@ -63,7 +63,6 @@ def add_stock(postgres_session):
     batches_added =set()
     skus_added = set()
 
-    # Some lost function
     def _add_stock(lines):
         for ref, sku, qty, eta in lines:
             sql_insert = orm.text(

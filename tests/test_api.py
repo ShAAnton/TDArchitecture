@@ -58,7 +58,7 @@ def test_deallocate():
     r = requests.post(
         f"{url}/allocate", json={"order_id": order1, "sku": sku, "quantity": 100}
     )
-    assert r.json()["batchid"] == batch
+    assert r.json()["batch_id"] == batch
 
     # cannot allocate second order
     r = requests.post(
