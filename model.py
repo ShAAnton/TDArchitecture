@@ -32,11 +32,12 @@ class Batch:
     def deallocate(self, line: OrderLine):
         if line in self._allocations:
             self._allocations.remove(line)
-        else:
-            raise NotAllocatedLine(f"Can not deallocate not allocated line {line.sku}")
 
     def can_allocate(self, line: OrderLine):
         return self.sku == line.sku and self.available_quantity >= line.quantity
+
+    def can_deallocate(self, line: OrderLine):
+        return line in self._allocations
 
     @property
     def allocated_quantity(self) -> int:
@@ -63,7 +64,13 @@ class Batch:
 def allocate(line: OrderLine, batches: list[Batch]):
     sorted_batches = sorted(batch for batch in batches if batch.can_allocate(line))
     for batch in sorted_batches:
-        if batch.can_allocate(line):
-            batch.allocate(line)
-            return batch.reference
+        batch.allocate(line)
+        return batch.reference
     raise OutOfStock(f'Out of stock for sku {line.sku}')
+
+def deallocate(line: OrderLine, batches: list[Batch]):
+    sorted_batches = sorted(batch for batch in batches if batch.can_deallocate(line))
+    for batch in sorted_batches:
+        batch.deallocate(line)
+        return batch.reference
+    raise NotAllocatedLine(f"Can not deallocate not allocated line {line.sku}")

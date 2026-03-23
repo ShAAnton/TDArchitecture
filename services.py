@@ -25,6 +25,10 @@ def add_batch(batch_ref, sku, quantity, eta, repo: AbstractRepository, session: 
     repo.add(batch)
     session.commit()
 
-def deallocate(batch, order_line, session):
-    batch.deallocate(order_line)
+def deallocate(line, repo: AbstractRepository, session):
+    batches = repo.list()
+    if not is_valid_sku(line.sku, batches):
+        raise InvalidSku(f'Invalid sku {line.sku}')
+    batch_ref = model.deallocate(line, batches)
     session.commit()
+    return batch_ref

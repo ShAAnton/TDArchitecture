@@ -49,36 +49,48 @@ def post_to_add_batch():
 
 @pytest.mark.usefixtures("postgres_db")
 @pytest.mark.usefixtures("restart_api")
-def test_deallocate():
+def test_deallocate(add_stock):
     sku, order1, order2 = random_sku(), random_order_id(), random_order_id()
-    batch = random_batch_ref()
-    post_to_add_batch(batch, sku, 100, "2011-01-02")
+    batch_ref = random_batch_ref()
+    # post_to_add_batch(batch_ref, sku, 100, "2011-01-02")
+    add_stock([
+        (batch_ref, sku, 100, '2026-03-17'),
+    ])
     url = config.get_api_url()
     # fully allocate
     r = requests.post(
-        f"{url}/allocate", json={"order_id": order1, "sku": sku, "quantity": 100}
+        f"{url}/allocate",
+        json={"order_id": order1,
+              "sku": sku,
+              "quantity": 100}
     )
-    assert r.json()["batch_id"] == batch
+    assert r.json()["batch_ref"] == batch_ref
 
     # cannot allocate second order
     r = requests.post(
-        f"{url}/allocate", json={"order_id": order2, "sku": sku, "quantity": 100}
+        f"{url}/allocate",
+        json={"order_id": order2,
+              "sku": sku,
+              "quantity": 100}
     )
     assert r.status_code == 400
 
     # deallocate
     r = requests.post(
         f"{url}/deallocate",
-        json={
-            "order_id": order1,
-            "sku": sku,
-        },
+        json={"batch_ref": batch_ref,
+              "order_id": order1,
+              "sku": sku,
+              "quantity": 100}
     )
-    assert r.ok
+    assert r.status_code == 201
 
     # now we can allocate second order
     r = requests.post(
-        f"{url}/allocate", json={"order_id": order2, "sku": sku, "qty": 100}
+        f"{url}/allocate",
+        json={"order_id": order2,
+              "sku": sku,
+              "qty": 100}
     )
-    assert r.ok
-    assert r.json()["batch_id"] == batch
+    assert r.status_code == 201
+    assert r.json()["batch_ref"] == batch_ref

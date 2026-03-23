@@ -62,7 +62,7 @@ def test_deallocate_decrements_available_quantity():
     services.allocate(line, repo, session)
     batch = repo.get(reference="b1")
     assert batch.available_quantity == 90
-    services.deallocate(batch, line, session)
+    services.deallocate(line, repo, session)
     assert batch.available_quantity == 100
 
 
@@ -72,10 +72,10 @@ def test_deallocate_decrements_correct_quantity():
     services.add_batch("b1", sku, quantity=100, eta=None, repo=repo, session=session)
     batch = repo.get(reference="b1")
     line = model.OrderLine("o1", sku, 10)
-    wrong_sku_line = model.OrderLine("o1", "WRONG_SKU", 10)
+    wrong_quantity_line = model.OrderLine("o1", sku, 5)
     services.allocate(line, repo, session)
     try:
-        services.deallocate(batch, wrong_sku_line, session)
+        services.deallocate(wrong_quantity_line, repo, session)
     except model.NotAllocatedLine:
         pass
     assert batch.available_quantity == 90
@@ -85,8 +85,6 @@ def test_trying_to_deallocate_unallocated_batch():
     sku = "SOLONG_BATCH"
     repo, session = FakeRepository(), FakeSession()
     services.add_batch("b1", sku, quantity=100, eta=None, repo=repo, session=session)
-    batch = repo.get(reference="b1")
-    no_allocated_line = model.OrderLine("o1", "WRONG_SKU", 10)
-    with pytest.raises(model.NotAllocatedLine, match=f"Can not deallocate not allocated line {no_allocated_line.sku}"):
-        services.deallocate(batch, no_allocated_line, session)
-    ...  #  TODO: should this error or pass silently? up to you.
+    not_allocated_line = model.OrderLine("o1", sku, 10)
+    with pytest.raises(model.NotAllocatedLine, match=f"Can not deallocate not allocated line {not_allocated_line.sku}"):
+        services.deallocate(not_allocated_line, repo, session)
