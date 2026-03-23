@@ -78,8 +78,7 @@ def test_deallocate(add_stock):
     # deallocate
     r = requests.post(
         f"{url}/deallocate",
-        json={"batch_ref": batch_ref,
-              "order_id": order1,
+        json={"order_id": order1,
               "sku": sku,
               "quantity": 100}
     )
@@ -90,7 +89,7 @@ def test_deallocate(add_stock):
         f"{url}/allocate",
         json={"order_id": order2,
               "sku": sku,
-              "qty": 100}
+              "quantity": 100}
     )
     assert r.status_code == 201
     assert r.json()["batch_ref"] == batch_ref

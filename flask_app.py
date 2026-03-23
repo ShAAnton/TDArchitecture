@@ -17,18 +17,18 @@ app = Flask(__name__)
 def deallocate_endpoint():
     session = get_session()
     repo = repository.SQLAlchemyRepository(session)
-    batch = repo.get(request.json['batch_ref'])
     line = model.OrderLine(
         order_id=request.json['order_id'],
         sku=request.json['sku'],
         quantity=request.json['quantity']
     )
     try:
-        services.deallocate(batch, line, session)
-    except model.NotAllocatedLine as e:
+        batch_ref = services.deallocate(line, repo, session)
+    except (model.NotAllocatedLine, services.InvalidSku) as e:
         return jsonify({'message': str(e)}), 400
 
-    return None, 201
+    return jsonify({'batch_ref': batch_ref}), 201
+
 
 @app.route("/allocate", methods=['POST'])
 def allocate_endpoint():
