@@ -44,18 +44,22 @@ def test_unhappy_path_returns_400_and_error_message():
     assert r.json()['message'] == f'Invalid sku {unknown_sku}'
 
 
-def post_to_add_batch():
-    pass
+def post_to_add_batch(batch_ref, sku, quantity, eta=None):
+    url = config.get_api_url()
+    r = requests.post(
+        f"{url}/add_batch",
+        json={"batch_ref": batch_ref,
+              "sku": sku,
+              "quantity": quantity,
+              "eta": eta}
+    )
 
 @pytest.mark.usefixtures("postgres_db")
 @pytest.mark.usefixtures("restart_api")
 def test_deallocate(add_stock):
     sku, order1, order2 = random_sku(), random_order_id(), random_order_id()
     batch_ref = random_batch_ref()
-    # post_to_add_batch(batch_ref, sku, 100, "2011-01-02")
-    add_stock([
-        (batch_ref, sku, 100, '2026-03-17'),
-    ])
+    post_to_add_batch(batch_ref, sku, 100, "2011-01-02")
     url = config.get_api_url()
     # fully allocate
     r = requests.post(

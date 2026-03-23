@@ -24,6 +24,7 @@ def add_batch(batch_ref, sku, quantity, eta, repo: AbstractRepository, session: 
     batch = model.Batch(batch_ref, sku, quantity, eta)
     repo.add(batch)
     session.commit()
+    return batch.reference
 
 def deallocate(line, repo: AbstractRepository, session):
     batches = repo.list()
