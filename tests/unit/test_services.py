@@ -5,6 +5,7 @@ import pytest
 # from datetime import date, timedelta
 from typing import Iterable
 
+
 class FakeRepository(repository.AbstractRepository):
     def __init__(self, batches: Iterable[model.Batch] | None = None):
         self._batches = set(batches) if batches else set()
@@ -17,6 +18,11 @@ class FakeRepository(repository.AbstractRepository):
 
     def list(self):
         return list(self._batches)
+
+    @staticmethod
+    def for_batch(ref, sku, qty, eta=None):
+        batch = model.Batch(ref, sku, qty, eta)
+        return FakeRepository([batch])
 
 
 class FakeSession:
@@ -31,35 +37,39 @@ class FakeSession:
 # later = tomorrow + timedelta(days=10)
 
 
-def test_returns_allocation():
+def test_add_batch():
+    repo, session = FakeRepository([]), FakeSession()
+    services.add_batch("b1", "CRUNCHY-ARMCHAIRT", 100, None, repo, session)
+    assert repo.get("b1") is not None
+    assert session.commited is True
+
+
+def test_allocate_returns_allocation():
     sku = "COMPLICATED-LAMP"
-    batch = model.Batch("b1", sku, 100, eta=None)
-    repo = FakeRepository([batch])
-    result = services.allocate("o1", sku, 10, repo, FakeSession())
+    repo, session = FakeRepository.for_batch("b1", sku, 100, eta=None), FakeSession()
+    result = services.allocate("o1", sku, 10, repo, session)
     assert result == "b1"
 
 
 def test_error_for_invalid_sku():
     sku = "NONEXISTENTSKU"
-    batch = model.Batch("b1", "AREALSKU", 100, eta=None)
-    repo = FakeRepository([batch])
+    repo = FakeRepository.for_batch("b1", "AREALSKU", 100, eta=None)
     with pytest.raises(services.InvalidSku, match=f"Invalid sku {sku}"):
         services.allocate("o1", sku, 10, repo, FakeSession())
 
 
 def test_commit():
     sku = "OMINOUS-MIRROR"
-    batch = model.Batch("b1", sku, 100, eta=None)
-    repo = FakeRepository([batch])
+    repo = FakeRepository.for_batch("b1", sku, 100, eta=None)
     session = FakeSession()
     services.allocate("o1", sku, 10, repo, session)
     assert session.commited is True
 
 
 def test_deallocate_decrements_available_quantity():
-    repo, session = FakeRepository([]), FakeSession()
-    services.add_batch("b1", "BLUE-PLINTH", 100, None, repo, session)
-    services.allocate("o1", "BLUE-PLINTH", 10, repo, session)
+    sku = "BLUE-PLINTH"
+    repo, session = FakeRepository.for_batch("b1", sku, 100), FakeSession()
+    services.allocate("o1", sku, 10, repo, session)
     batch = repo.get(reference="b1")
     assert batch.available_quantity == 90
     services.deallocate("o1", "BLUE-PLINTH", 10, repo, session)
@@ -82,8 +92,7 @@ def test_deallocate_decrements_correct_quantity():
 
 def test_trying_to_deallocate_unallocated_batch():
     sku = "SOLONG_BATCH"
-    repo, session = FakeRepository(), FakeSession()
-    services.add_batch("b1", sku, quantity=100, eta=None, repo=repo, session=session)
+    repo, session = FakeRepository.for_batch("b1", sku, 100, eta=None), FakeSession()
     not_allocated_line = ("o1", sku, 10)
     with pytest.raises(model.NotAllocatedLine, match=f"Can not deallocate not allocated line {sku}"):
         services.deallocate(*not_allocated_line, repo, session)
