@@ -30,13 +30,14 @@ def add_batch_endpoint():
 def deallocate_endpoint():
     session = get_session()
     repo = repository.SQLAlchemyRepository(session)
-    line = model.OrderLine(
-        order_id=request.json['order_id'],
-        sku=request.json['sku'],
-        quantity=request.json['quantity']
-    )
     try:
-        batch_ref = services.deallocate(line, repo, session)
+        batch_ref = services.deallocate(
+            order_id=request.json['order_id'],
+            sku=request.json['sku'],
+            quantity=request.json['quantity'],
+            repo=repo,
+            session=session
+        )
     except (model.NotAllocatedLine, services.InvalidSku) as e:
         return jsonify({'message': str(e)}), 400
 
@@ -47,13 +48,14 @@ def deallocate_endpoint():
 def allocate_endpoint():
     session = get_session()
     repo = repository.SQLAlchemyRepository(session)
-    line = model.OrderLine(
-        order_id=request.json['order_id'],
-        sku=request.json['sku'],
-        quantity=request.json['quantity']
-    )
     try:
-        batch_ref = services.allocate(line, repo, session)
+        batch_ref = services.allocate(
+            order_id=request.json['order_id'],
+            sku=request.json['sku'],
+            quantity=request.json['quantity'],
+            repo=repo,
+            session=session
+        )
     except (model.OutOfStock, services.InvalidSku) as e:
         return jsonify({'message': str(e)}), 400
 
