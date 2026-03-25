@@ -1,13 +1,11 @@
 import repository
-import model
 import services
 import pytest
-# from datetime import date, timedelta
 from typing import Iterable
 
 
 class FakeRepository(repository.AbstractRepository):
-    def __init__(self, batches: Iterable[model.Batch] | None = None):
+    def __init__(self, batches: Iterable | None = None):
         self._batches = set(batches) if batches else set()
 
     def add(self, batch):
@@ -18,11 +16,6 @@ class FakeRepository(repository.AbstractRepository):
 
     def list(self):
         return list(self._batches)
-
-    @staticmethod
-    def for_batch(ref, sku, qty, eta=None):
-        batch = model.Batch(ref, sku, qty, eta)
-        return FakeRepository([batch])
 
 
 class FakeSession:
@@ -38,7 +31,7 @@ class FakeSession:
 
 
 def test_add_batch():
-    repo, session = FakeRepository([]), FakeSession()
+    repo, session = FakeRepository(), FakeSession()
     services.add_batch("b1", "CRUNCHY-ARMCHAIRT", 100, None, repo, session)
     assert repo.get("b1") is not None
     assert session.commited is True
@@ -46,29 +39,32 @@ def test_add_batch():
 
 def test_allocate_returns_allocation():
     sku = "COMPLICATED-LAMP"
-    repo, session = FakeRepository.for_batch("b1", sku, 100, eta=None), FakeSession()
+    repo, session = FakeRepository(), FakeSession()
+    services.add_batch("b1", sku, 100, None, repo, session)
     result = services.allocate("o1", sku, 10, repo, session)
     assert result == "b1"
 
 
 def test_error_for_invalid_sku():
-    sku = "NONEXISTENTSKU"
-    repo = FakeRepository.for_batch("b1", "AREALSKU", 100, eta=None)
-    with pytest.raises(services.InvalidSku, match=f"Invalid sku {sku}"):
-        services.allocate("o1", sku, 10, repo, FakeSession())
+    sku, invalid_sku = "AREALSKU", "NONEXISTENTSKU"
+    repo, session = FakeRepository(), FakeSession()
+    services.add_batch("b1", sku, 100, None, repo, session)
+    with pytest.raises(services.InvalidSku, match=f"Invalid sku {invalid_sku}"):
+        services.allocate("o1", invalid_sku, 10, repo, session)
 
 
 def test_commit():
     sku = "OMINOUS-MIRROR"
-    repo = FakeRepository.for_batch("b1", sku, 100, eta=None)
-    session = FakeSession()
+    repo, session = FakeRepository(), FakeSession()
+    services.add_batch("b1", sku, 100, None, repo, session)
     services.allocate("o1", sku, 10, repo, session)
     assert session.commited is True
 
 
 def test_deallocate_decrements_available_quantity():
     sku = "BLUE-PLINTH"
-    repo, session = FakeRepository.for_batch("b1", sku, 100), FakeSession()
+    repo, session = FakeRepository(), FakeSession()
+    services.add_batch("b1", sku, 100, None, repo, session)
     services.allocate("o1", sku, 10, repo, session)
     batch = repo.get(reference="b1")
     assert batch.available_quantity == 90
@@ -78,23 +74,24 @@ def test_deallocate_decrements_available_quantity():
 
 def test_deallocate_decrements_correct_quantity():
     sku = "GOODBATCH"
-    repo, session = FakeRepository([]), FakeSession()
+    repo, session = FakeRepository(), FakeSession()
     services.add_batch("b1", sku, quantity=100, eta=None, repo=repo, session=session)
     batch = repo.get(reference="b1")
     wrong_quantity_line = ("o1", sku, 5)
     services.allocate("o1", sku, 10, repo, session)
     try:
         services.deallocate(*wrong_quantity_line, repo, session)
-    except model.NotAllocatedLine:
+    except services.NotAllocatedLine:
         pass
     assert batch.available_quantity == 90
 
 
 def test_trying_to_deallocate_unallocated_batch():
     sku = "SOLONG_BATCH"
-    repo, session = FakeRepository.for_batch("b1", sku, 100, eta=None), FakeSession()
+    repo, session = FakeRepository(), FakeSession()
+    services.add_batch("b1", sku, 100, eta=None, repo=repo, session=session)
     not_allocated_line = ("o1", sku, 10)
-    with pytest.raises(model.NotAllocatedLine, match=f"Can not deallocate not allocated line {sku}"):
+    with pytest.raises(services.NotAllocatedLine, match=f"Can not deallocate not allocated line {sku}"):
         services.deallocate(*not_allocated_line, repo, session)
 
 

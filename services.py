@@ -1,7 +1,7 @@
 import model
 import repository
 from repository import AbstractRepository, Session
-
+from model import NotAllocatedLine
 
 class InvalidSku(Exception):
     pass
