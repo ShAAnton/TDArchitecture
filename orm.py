@@ -1,7 +1,6 @@
 from sqlalchemy import *
 from sqlalchemy import orm
 
-# from sqlalchemy.orm import mapper, relationship
 import model
 
 metadata = MetaData()
@@ -39,7 +38,9 @@ def start_mappers():
         batches,
         properties={
             "_allocations": orm.relationship(
-                lines_mapper, secondary=allocations, collection_class=set,
+                lines_mapper,
+                secondary=allocations,
+                collection_class=set,
             )
         },
     )
