@@ -4,8 +4,8 @@ import requests
 from sqlalchemy import create_engine
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import clear_mappers
-import orm
-import config
+from src.allocation.adapters import orm
+from src.allocation import config
 
 
 @pytest.fixture

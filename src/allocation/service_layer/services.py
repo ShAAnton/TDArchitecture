@@ -1,7 +1,6 @@
-import model
-import repository
-from repository import AbstractRepository, Session
-from model import NotAllocatedLine
+from src.allocation.domain import model
+from src.allocation.adapters.repository import AbstractRepository, Session
+
 
 class InvalidSku(Exception):
     pass

@@ -1,5 +1,5 @@
-import model
-import repository
+from src.allocation.domain import model
+from src.allocation.adapters import repository
 import sqlalchemy
 
 def test_repository_can_save_a_batch(session):

@@ -1,5 +1,5 @@
-import repository
-import services
+from src.allocation.adapters import repository
+from src.allocation.service_layer import services
 import pytest
 from typing import Iterable
 

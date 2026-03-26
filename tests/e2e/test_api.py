@@ -1,5 +1,5 @@
 import pytest
-import config
+from src.allocation import config
 import requests
 import uuid
 

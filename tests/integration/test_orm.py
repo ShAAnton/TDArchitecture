@@ -1,5 +1,5 @@
-import orm
-import model
+from src.allocation.adapters import orm
+from src.allocation.domain import model
 from datetime import date
 
 

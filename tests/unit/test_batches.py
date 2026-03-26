@@ -1,7 +1,6 @@
-from datetime import date, timedelta
-import pytest
+from datetime import timedelta
 
-from model import *
+from src.allocation.domain.model import *
 
 today = date.today()
 tomorrow = today + timedelta(days=1)
