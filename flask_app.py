@@ -8,26 +8,31 @@ import orm
 import repository
 import services
 
+import datetime
+
 orm.start_mappers()
 get_session = sessionmaker(bind=create_engine(config.get_postgres_uri()))
 app = Flask(__name__)
 
 @app.route("/add_batch", methods=['POST'])
-def add_batch_endpoint():
+def add_batch():
     session = get_session()
     repo = repository.SQLAlchemyRepository(session)
-    batch_ref = services.add_batch(
+    eta = request.json['eta']
+    if eta is not None:
+        eta = datetime.date.fromisoformat(eta)
+    services.add_batch(
         batch_ref=request.json['batch_ref'],
         sku=request.json['sku'],
         quantity=request.json['quantity'],
-        eta=request.json['eta'],
+        eta=eta,
         repo=repo,
         session=session
     )
-    return jsonify({'batch_ref': batch_ref}), 201
+    return 'OK', 201
 
 @app.route("/deallocate", methods=['POST'])
-def deallocate_endpoint():
+def deallocate():
     session = get_session()
     repo = repository.SQLAlchemyRepository(session)
     try:
@@ -45,7 +50,7 @@ def deallocate_endpoint():
 
 
 @app.route("/allocate", methods=['POST'])
-def allocate_endpoint():
+def allocate():
     session = get_session()
     repo = repository.SQLAlchemyRepository(session)
     try:
