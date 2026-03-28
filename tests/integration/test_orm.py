@@ -4,12 +4,11 @@ from datetime import date
 
 
 def test_order_line_mapper_can_load_lines(session):
-    bulk_insert = orm.text(
-        'INSERT INTO order_lines (order_id, sku, quantity) VALUES'
-            '("order1", "RED-CHAIR", 12),'
-            '("order1", "RED-TABLE", 13),'
-            '("order2", "BLUE-LIPSTICK", 14)')
-    session.execute(bulk_insert)
+    sql_insert = 'INSERT INTO order_lines (order_id, sku, quantity) VALUES '\
+            '("order1", "RED-CHAIR", 12), '\
+            '("order1", "RED-TABLE", 13), '\
+            '("order2", "BLUE-LIPSTICK", 14) '
+    session.execute(statement=sql_insert)
     expected = [
         model.OrderLine("order1", "RED-CHAIR", 12),
         model.OrderLine("order1", "RED-TABLE", 13),

@@ -1,6 +1,5 @@
 from flask import Flask, jsonify, request
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 
 import config
 import model
@@ -11,7 +10,7 @@ import services
 import datetime
 
 orm.start_mappers()
-get_session = sessionmaker(bind=create_engine(config.get_postgres_uri()))
+get_session = orm.sessionmaker(bind=create_engine(config.get_postgres_uri()))
 app = Flask(__name__)
 
 @app.route("/add_batch", methods=['POST'])

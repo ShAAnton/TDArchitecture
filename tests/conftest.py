@@ -3,7 +3,7 @@ import time
 import requests
 from sqlalchemy import create_engine
 from sqlalchemy.exc import OperationalError
-from sqlalchemy.orm import sessionmaker, clear_mappers
+from sqlalchemy.orm import clear_mappers
 import orm
 import config
 
@@ -18,7 +18,7 @@ def in_memory_db():
 @pytest.fixture
 def session(in_memory_db):
     orm.start_mappers()
-    yield sessionmaker(bind=in_memory_db)()
+    yield orm.sessionmaker(bind=in_memory_db)()
     clear_mappers()
 
 
@@ -33,7 +33,7 @@ def postgres_db():
 @pytest.fixture
 def postgres_session(postgres_db):
     orm.start_mappers()
-    yield sessionmaker(bind=postgres_db)()
+    yield orm.sessionmaker(bind=postgres_db)()
     clear_mappers()
 
 

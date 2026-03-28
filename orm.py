@@ -3,6 +3,21 @@ from sqlalchemy import orm
 
 import model
 
+class Session(orm.Session):
+    def execute(self, *args, **kwargs):
+        if isinstance(kwargs.get('statement'), str):
+            kwargs['statement'] = text(kwargs['statement'])
+        elif kwargs.get('statement') is None and len(args) > 0 and isinstance(args[0], str):
+            args[0] = text(args[0])
+        return super().execute(*args, **kwargs)
+
+
+def sessionmaker(*args, **kwargs):
+    if kwargs.get('class_') is None:
+        kwargs['class_'] = Session
+    return orm.sessionmaker(*args, **kwargs)
+
+
 metadata = MetaData()
 
 order_lines = Table(
