@@ -8,6 +8,7 @@ class Session(orm.Session):
         if isinstance(kwargs.get('statement'), str):
             kwargs['statement'] = text(kwargs['statement'])
         elif kwargs.get('statement') is None and len(args) > 0 and isinstance(args[0], str):
+            args = list(args)
             args[0] = text(args[0])
         return super().execute(*args, **kwargs)
 
