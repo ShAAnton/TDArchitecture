@@ -58,56 +58,6 @@ def wait_for_webapp_to_come_up():
 
 
 @pytest.fixture
-def add_stock(postgres_session):
-    batches_added =set()
-    skus_added = set()
-
-    def _add_stock(lines):
-        for ref, sku, qty, eta in lines:
-            sql_insert = orm.text(
-                'INSERT INTO batches (reference, sku, _purchased_quantity, eta) '
-                'VALUES (:ref, :sku, :qty, :eta)'
-            )
-            postgres_session.execute(sql_insert,
-                                     dict(ref=ref, sku=sku, qty=qty, eta=eta)
-                                     )
-            sql_select = orm.text(
-                'SELECT id FROM batches '
-                'WHERE reference = :ref '
-                'AND sku = :sku'
-            )
-            [[batch_id]] = postgres_session.execute(sql_select,
-                                                    dict(ref=ref, sku=sku)
-                                                    )
-            batches_added.add(batch_id)
-            skus_added.add(sku)
-        postgres_session.commit()
-
-    yield _add_stock
-
-    for batch_id in batches_added:
-        sql_delete = orm.text(
-            'DELETE FROM allocations '
-            'WHERE batch_id = :batch_id '
-        )
-        postgres_session.execute(sql_delete,
-                                 dict(batch_id=batch_id))
-        sql_delete = orm.text(
-            'DELETE FROM batches '
-            'WHERE id = :batch_id '
-        )
-        postgres_session.execute(sql_delete,
-                                 dict(batch_id=batch_id))
-    for sku in skus_added:
-        sql_delete = orm.text(
-                'DELETE FROM order_lines '
-                'WHERE sku = :sku '
-            )
-        postgres_session.execute(sql_delete,
-                                     dict(sku=sku))
-        postgres_session.commit()
-
-@pytest.fixture
 def restart_api():
     # (Path(__file__).parent / "flask_app.py").touch()
     # time.sleep(0.5)
