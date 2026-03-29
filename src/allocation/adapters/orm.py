@@ -1,3 +1,4 @@
+import sqlalchemy
 from sqlalchemy import *
 from sqlalchemy import orm
 
@@ -47,7 +48,6 @@ allocations = Table(
 
 def start_mappers():
     mapper_registry = orm.registry()
-    batch = model.Batch("batch1", "sku1", 100, eta=None)
     lines_mapper = mapper_registry.map_imperatively(model.OrderLine, order_lines)
     batches_mapper = mapper_registry.map_imperatively(
         model.Batch,
