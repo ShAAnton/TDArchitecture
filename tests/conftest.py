@@ -16,11 +16,15 @@ def in_memory_db():
 
 
 @pytest.fixture
-def session(in_memory_db):
+def session_factory(in_memory_db):
     orm.start_mappers()
-    yield orm.sessionmaker(bind=in_memory_db)()
+    yield orm.sessionmaker(bind=in_memory_db)
     clear_mappers()
 
+
+@pytest.fixture
+def session(session_factory):
+    return session_factory()
 
 @pytest.fixture(scope="session")
 def postgres_db():
