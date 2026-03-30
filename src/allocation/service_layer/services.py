@@ -1,5 +1,5 @@
-from src.allocation.domain import model
-from src.allocation.adapters.repository import AbstractRepository, Session
+from allocation.domain import model
+from allocation.adapters.repository import AbstractRepository, Session
 
 
 class InvalidSku(Exception):

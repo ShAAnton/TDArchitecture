@@ -1,8 +1,7 @@
-import sqlalchemy
 from sqlalchemy import *
 from sqlalchemy import orm
+from allocation.domain import model
 
-from src.allocation.domain import model
 
 class Session(orm.Session):
     def execute(self, *args, **kwargs):

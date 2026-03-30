@@ -1,5 +1,6 @@
 from src.allocation.adapters import repository
 from src.allocation.service_layer import services
+import src.allocation.service_layer.unit_of_work as unit_of_work
 import pytest
 from typing import Iterable
 
@@ -18,6 +19,11 @@ class FakeRepository(repository.AbstractRepository):
         return list(self._batches)
 
 
+class FakeUnitOfWork(unit_of_work.AbstractionUnitOfWork):
+
+    def __init__(self):
+        ...
+
 class FakeSession:
     commited = False
 
@@ -25,62 +31,57 @@ class FakeSession:
         self.commited = True
 
 
-# today = date.today()
-# tomorrow = today + timedelta(days=1)
-# later = tomorrow + timedelta(days=10)
-
-
 def test_add_batch():
-    repo, session = FakeRepository(), FakeSession()
-    services.add_batch("b1", "CRUNCHY-ARMCHAIRT", 100, None, repo, session)
-    assert repo.get("b1") is not None
-    assert session.commited is True
+    uow = FakeUnitOfWork()
+    services.add_batch("b1", "CRUNCHY-ARMCHAIRT", 100, None, uow)
+    assert uow.batches.get("b1") is not None
+    assert uow.commited is True
 
 
 def test_allocate_returns_allocation():
     sku = "COMPLICATED-LAMP"
-    repo, session = FakeRepository(), FakeSession()
-    services.add_batch("b1", sku, 100, None, repo, session)
-    result = services.allocate("o1", sku, 10, repo, session)
+    uow = FakeUnitOfWork()
+    services.add_batch("b1", sku, 100, None, uow)
+    result = services.allocate("o1", sku, 10, uow)
     assert result == "b1"
 
 
 def test_error_for_invalid_sku():
     sku, invalid_sku = "AREALSKU", "NONEXISTENTSKU"
-    repo, session = FakeRepository(), FakeSession()
-    services.add_batch("b1", sku, 100, None, repo, session)
+    uow = FakeUnitOfWork()
+    services.add_batch("b1", sku, 100, None, uow)
     with pytest.raises(services.InvalidSku, match=f"Invalid sku {invalid_sku}"):
-        services.allocate("o1", invalid_sku, 10, repo, session)
+        services.allocate("o1", invalid_sku, 10, uow)
 
 
-def test_commit():
+def test_allocate_commit():
     sku = "OMINOUS-MIRROR"
-    repo, session = FakeRepository(), FakeSession()
-    services.add_batch("b1", sku, 100, None, repo, session)
-    services.allocate("o1", sku, 10, repo, session)
+    uow = FakeUnitOfWork()
+    services.add_batch("b1", sku, 100, None, uow)
+    services.allocate("o1", sku, 10, uow)
     assert session.commited is True
 
 
 def test_deallocate_decrements_available_quantity():
     sku = "BLUE-PLINTH"
-    repo, session = FakeRepository(), FakeSession()
-    services.add_batch("b1", sku, 100, None, repo, session)
-    services.allocate("o1", sku, 10, repo, session)
-    batch = repo.get(reference="b1")
+    uow = FakeUnitOfWork()
+    services.add_batch("b1", sku, 100, None, uow)
+    services.allocate("o1", sku, 10, uow)
+    batch = uow.batches.get(reference="b1")
     assert batch.available_quantity == 90
-    services.deallocate("o1", "BLUE-PLINTH", 10, repo, session)
+    services.deallocate("o1", "BLUE-PLINTH", 10, uow)
     assert batch.available_quantity == 100
 
 
 def test_deallocate_decrements_correct_quantity():
     sku = "GOODBATCH"
-    repo, session = FakeRepository(), FakeSession()
-    services.add_batch("b1", sku, quantity=100, eta=None, repo=repo, session=session)
-    batch = repo.get(reference="b1")
+    uow = FakeUnitOfWork()
+    services.add_batch("b1", sku, quantity=100, eta=None, uow=uow)
+    batch = uow.batches.get(reference="b1")
     wrong_quantity_line = ("o1", sku, 5)
-    services.allocate("o1", sku, 10, repo, session)
+    services.allocate("o1", sku, 10, uow)
     try:
-        services.deallocate(*wrong_quantity_line, repo, session)
+        services.deallocate(*wrong_quantity_line, uow)
     except services.NotAllocatedLine:
         pass
     assert batch.available_quantity == 90
@@ -88,11 +89,11 @@ def test_deallocate_decrements_correct_quantity():
 
 def test_trying_to_deallocate_unallocated_batch():
     sku = "SOLONG_BATCH"
-    repo, session = FakeRepository(), FakeSession()
-    services.add_batch("b1", sku, 100, eta=None, repo=repo, session=session)
+    uow = FakeUnitOfWork()
+    services.add_batch("b1", sku, 100, eta=None, uow=uow)
     not_allocated_line = ("o1", sku, 10)
     with pytest.raises(services.NotAllocatedLine, match=f"Can not deallocate not allocated line {sku}"):
-        services.deallocate(*not_allocated_line, repo, session)
+        services.deallocate(*not_allocated_line, uow)
 
 
 # def test_prefers_current_stock_batches_to_shipments():

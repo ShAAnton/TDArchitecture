@@ -1,5 +1,8 @@
 import allocation.service_layer.unit_of_work as unit_of_work
 import pytest
+import allocation.domain.model as model
+from allocation.service_layer.unit_of_work import SqlAlchemyUnitOfWork
+
 
 def insert_batch(session, reference, sku, quantity, eta):
     sql_insert = ('INSERT INTO batches '
@@ -28,7 +31,24 @@ def get_allocated_batch_ref(session, order_id, sku):
     [[batch_ref]] = session.execute(sql_select, sql_param)
     return batch_ref
 
-def test_roll_back_uncommitted_work_by_default(session_factory):
+def test_uow_can_retrieve_a_batch_and_allocate_to_it(session_factory):
+    sku = 'HIPSTER-WORKBENCH'
+    session = session_factory()
+    insert_batch(session, 'batch1', sku, 100, None)
+    session.commit()
+
+    uow = SqlAlchemyUnitOfWork(session_factory)
+    with uow:
+        batch = uow.batches.get('batch1')
+        order_id = 'o1'
+        line = model.OrderLine(order_id, sku, 10)
+        batch.allocate(line)
+        uow.commit()
+
+    batch_ref = get_allocated_batch_ref(session, order_id, sku)
+    assert batch_ref == 'batch1'
+
+def test_rolls_back_uncommitted_work_by_default(session_factory):
     uow = unit_of_work.SqlAlchemyUnitOfWork(session_factory)
     with uow:
         insert_batch(uow.session, "batch1", "MEDIUM-PLINTH", 100, None)
@@ -37,7 +57,7 @@ def test_roll_back_uncommitted_work_by_default(session_factory):
     rows = list(new_session.execute('SELECT * FROM batches'))
     assert rows == []
 
-def test_roll_back_on_error(session_factory):
+def test_rolls_back_on_error(session_factory):
     class MyException(Exception):
         pass
 

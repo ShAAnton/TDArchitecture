@@ -1,10 +1,10 @@
 from flask import Flask, jsonify, request
 from sqlalchemy import create_engine
 
-from src.allocation import config
-from src.allocation.domain import model
-from src.allocation.adapters import orm, repository
-from src.allocation.service_layer import services
+from allocation import config
+from allocation.domain import model
+from allocation.adapters import orm, repository
+from allocation.service_layer import services
 
 import datetime
 
