@@ -17,7 +17,7 @@ def add_batch(batch_ref, sku, quantity, eta, uow: AbstractionUnitOfWork):
         batch = model.Batch(batch_ref, sku, quantity, eta)
         uow.batches.add(batch)
         uow.commit()
-    return batch.reference
+        return batch.reference
 
 
 def allocate(order_id: str, sku: str, quantity: int, uow: AbstractionUnitOfWork) -> str:
@@ -28,7 +28,7 @@ def allocate(order_id: str, sku: str, quantity: int, uow: AbstractionUnitOfWork)
         order_line = model.OrderLine(order_id, sku, quantity)
         batch_ref = model.allocate(order_line, batches)
         uow.commit()
-    return batch_ref
+        return batch_ref
 
 def deallocate(order_id: str, sku: str, quantity: int, uow: AbstractionUnitOfWork):
     with uow:
@@ -41,4 +41,4 @@ def deallocate(order_id: str, sku: str, quantity: int, uow: AbstractionUnitOfWor
         except model.NotAllocatedLine as e:
             raise NotAllocatedLine(e.args)
         uow.commit()
-    return batch_ref
+        return batch_ref
