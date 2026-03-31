@@ -1,6 +1,6 @@
 from datetime import timedelta
 
-from src.allocation.domain.model import *
+from allocation.domain.model import *
 
 today = date.today()
 tomorrow = today + timedelta(days=1)

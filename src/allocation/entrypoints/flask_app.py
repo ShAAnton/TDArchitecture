@@ -5,17 +5,15 @@ from allocation import config
 from allocation.domain import model
 from allocation.adapters import orm, repository
 from allocation.service_layer import services
+from allocation.service_layer import unit_of_work
 
 import datetime
 
 orm.start_mappers()
-get_session = orm.sessionmaker(bind=create_engine(config.get_postgres_uri()))
 app = Flask(__name__)
 
 @app.route("/add_batch", methods=['POST'])
 def add_batch():
-    session = get_session()
-    repo = repository.SQLAlchemyRepository(session)
     eta = request.json['eta']
     if eta is not None:
         eta = datetime.date.fromisoformat(eta)
@@ -24,22 +22,18 @@ def add_batch():
         sku=request.json['sku'],
         quantity=request.json['quantity'],
         eta=eta,
-        repo=repo,
-        session=session
+        uow=unit_of_work.SqlAlchemyUnitOfWork()
     )
     return 'OK', 201
 
 @app.route("/deallocate", methods=['POST'])
 def deallocate():
-    session = get_session()
-    repo = repository.SQLAlchemyRepository(session)
     try:
         batch_ref = services.deallocate(
             order_id=request.json['order_id'],
             sku=request.json['sku'],
             quantity=request.json['quantity'],
-            repo=repo,
-            session=session
+            uow=unit_of_work.SqlAlchemyUnitOfWork()
         )
     except (model.NotAllocatedLine, services.InvalidSku) as e:
         return jsonify({'message': str(e)}), 400
@@ -49,15 +43,12 @@ def deallocate():
 
 @app.route("/allocate", methods=['POST'])
 def allocate():
-    session = get_session()
-    repo = repository.SQLAlchemyRepository(session)
     try:
         batch_ref = services.allocate(
             order_id=request.json['order_id'],
             sku=request.json['sku'],
             quantity=request.json['quantity'],
-            repo=repo,
-            session=session
+            uow=unit_of_work.SqlAlchemyUnitOfWork()
         )
     except (model.OutOfStock, services.InvalidSku) as e:
         return jsonify({'message': str(e)}), 400

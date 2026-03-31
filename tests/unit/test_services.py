@@ -1,6 +1,6 @@
-from src.allocation.adapters import repository
-from src.allocation.service_layer import services
-import src.allocation.service_layer.unit_of_work as unit_of_work
+from allocation.adapters import repository
+from allocation.service_layer import services
+import allocation.service_layer.unit_of_work as unit_of_work
 import pytest
 from typing import Iterable
 
@@ -20,15 +20,15 @@ class FakeRepository(repository.AbstractRepository):
 
 
 class FakeUnitOfWork(unit_of_work.AbstractionUnitOfWork):
-
     def __init__(self):
-        ...
-
-class FakeSession:
-    commited = False
+        self.batches = FakeRepository()
+        self.commited = False
 
     def commit(self):
         self.commited = True
+
+    def rollback(self):
+        pass
 
 
 def test_add_batch():
@@ -59,7 +59,7 @@ def test_allocate_commit():
     uow = FakeUnitOfWork()
     services.add_batch("b1", sku, 100, None, uow)
     services.allocate("o1", sku, 10, uow)
-    assert session.commited is True
+    assert uow.commited is True
 
 
 def test_deallocate_decrements_available_quantity():
