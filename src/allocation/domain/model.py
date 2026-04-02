@@ -15,6 +15,7 @@ class OrderLine:
     sku: str
     quantity: int
 
+
 class Batch:
     def __init__(
             self, ref: str, sku: str, quantity: int, eta: Optional[date]
@@ -59,6 +60,22 @@ class Batch:
 
     def __hash__(self):
         return hash(self.reference)
+
+
+class Product:
+    def __init__(self, sku: str, batches: List[Batch]):
+        self.sku = sku
+        self.batches = batches
+
+    def allocate(self, line: OrderLine) -> str:
+        try:
+            batch = next(
+                b for b in sorted(self.batches) if b.can_allocate(line)
+            )
+            batch.allocate(line)
+            return batch.reference
+        except StopIteration:
+            raise OutOfStock(f'Out of stock for sku {line.sku}')
 
 
 def allocate(line: OrderLine, batches: list[Batch]):
