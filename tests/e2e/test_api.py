@@ -1,20 +1,8 @@
 import pytest
 from allocation import config
 import requests
-import uuid
+from ..random_refs import random_sku, random_batch_ref, random_order_id
 
-
-def random_suffix():
-    return uuid.uuid4().hex[:6]
-
-def random_sku(name=""):
-    return f"sku-{name}-{random_suffix()}"
-
-def random_batch_ref(name=""):
-    return f"batch-{name}-{random_suffix()}"
-
-def random_order_id(name=""):
-    return f"order-{name}-{random_suffix()}"
 
 def post_to_add_batch(batch_ref, sku, quantity, eta=None):
     url = config.get_api_url()
