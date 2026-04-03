@@ -5,7 +5,7 @@ from allocation import config
 from allocation.adapters.orm import sessionmaker, Session, create_engine
 
 class AbstractionUnitOfWork(abc.ABC):
-    batches: repository.AbstractRepository
+    products: repository.AbstractRepository
 
     def __enter__(self):
         return self
@@ -32,7 +32,7 @@ class SqlAlchemyUnitOfWork(AbstractionUnitOfWork):
 
     def __enter__(self, *args):
         self.session: Session = self.session_factory()
-        self.batches = repository.SQLAlchemyRepository(self.session)
+        self.products = repository.SQLAlchemyRepository(self.session)
         return super().__enter__()
 
     def __exit__(self, *args):

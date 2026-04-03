@@ -6,22 +6,22 @@ from typing import Iterable
 
 
 class FakeRepository(repository.AbstractRepository):
-    def __init__(self, batches: Iterable | None = None):
-        self._batches = set(batches) if batches else set()
+    def __init__(self, products: Iterable | None = None):
+        self._product = set(products) if products else set()
 
-    def add(self, batch):
-        self._batches.add(batch)
+    def add(self, product):
+        self._product.add(product)
 
-    def get(self, reference):
-        return next(b for b in self._batches if b.reference == reference)
+    def get(self, sku):
+        return next((p for p in self._product if p.sku == sku), None)
 
     def list(self):
-        return list(self._batches)
+        return list(self._product)
 
 
 class FakeUnitOfWork(unit_of_work.AbstractionUnitOfWork):
     def __init__(self):
-        self.batches = FakeRepository()
+        self.products = FakeRepository()
         self.commited = False
 
     def commit(self):
@@ -33,8 +33,9 @@ class FakeUnitOfWork(unit_of_work.AbstractionUnitOfWork):
 
 def test_add_batch():
     uow = FakeUnitOfWork()
-    services.add_batch("b1", "CRUNCHY-ARMCHAIRT", 100, None, uow)
-    assert uow.batches.get("b1") is not None
+    sku = "CRUNCHY-ARMCHAIRT"
+    services.add_batch("b1", sku, 100, None, uow)
+    assert uow.products.get(sku) is not None
     assert uow.commited is True
 
 

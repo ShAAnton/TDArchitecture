@@ -35,6 +35,13 @@ def postgres_db():
 
 
 @pytest.fixture
+def postgres_session_factory(postgres_db):
+    orm.start_mappers()
+    yield orm.sessionmaker(bind=postgres_db)
+    clear_mappers()
+
+
+@pytest.fixture
 def postgres_session(postgres_db):
     orm.start_mappers()
     yield orm.sessionmaker(bind=postgres_db)()
