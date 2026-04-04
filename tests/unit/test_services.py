@@ -31,13 +31,20 @@ class FakeUnitOfWork(unit_of_work.AbstractionUnitOfWork):
         pass
 
 
-def test_add_batch():
+def test_add_batch_for_new_product():
     uow = FakeUnitOfWork()
     sku = "CRUNCHY-ARMCHAIRT"
     services.add_batch("b1", sku, 100, None, uow)
     assert uow.products.get(sku) is not None
     assert uow.commited is True
 
+
+def test_add_batch_for_existing_product():
+    uow = FakeUnitOfWork()
+    sku = "GARISH-RUG"
+    services.add_batch("b1", sku, 100, None, uow)
+    services.add_batch("b2", sku, 99, None, uow)
+    assert "b2" in [b.reference for b in uow.products.get(sku).batches]
 
 def test_allocate_returns_allocation():
     sku = "COMPLICATED-LAMP"
@@ -55,7 +62,7 @@ def test_error_for_invalid_sku():
         services.allocate("o1", invalid_sku, 10, uow)
 
 
-def test_allocate_commit():
+def test_allocate_commits():
     sku = "OMINOUS-MIRROR"
     uow = FakeUnitOfWork()
     services.add_batch("b1", sku, 100, None, uow)
@@ -68,9 +75,9 @@ def test_deallocate_decrements_available_quantity():
     uow = FakeUnitOfWork()
     services.add_batch("b1", sku, 100, None, uow)
     services.allocate("o1", sku, 10, uow)
-    batch = uow.batches.get(reference="b1")
+    batch = uow.products.get(sku).batches[0]
     assert batch.available_quantity == 90
-    services.deallocate("o1", "BLUE-PLINTH", 10, uow)
+    services.deallocate("o1", sku, 10, uow)
     assert batch.available_quantity == 100
 
 
@@ -78,7 +85,7 @@ def test_deallocate_decrements_correct_quantity():
     sku = "GOODBATCH"
     uow = FakeUnitOfWork()
     services.add_batch("b1", sku, quantity=100, eta=None, uow=uow)
-    batch = uow.batches.get(reference="b1")
+    batch = uow.products.get(sku).batches[0]
     wrong_quantity_line = ("o1", sku, 5)
     services.allocate("o1", sku, 10, uow)
     try:
