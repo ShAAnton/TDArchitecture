@@ -87,17 +87,3 @@ class Product:
             return batch.reference
         except StopIteration:
             raise NotAllocatedLine(f"Can not deallocate not allocated line {line.sku}")
-
-def allocate(line: OrderLine, batches: list[Batch]):
-    sorted_batches = sorted(batch for batch in batches if batch.can_allocate(line))
-    for batch in sorted_batches:
-        batch.allocate(line)
-        return batch.reference
-    raise OutOfStock(f'Out of stock for sku {line.sku}')
-
-def deallocate(line: OrderLine, batches: list[Batch]):
-    sorted_batches = sorted(batch for batch in batches if batch.can_deallocate(line))
-    for batch in sorted_batches:
-        batch.deallocate(line)
-        return batch.reference
-    raise NotAllocatedLine(f"Can not deallocate not allocated line {line.sku}")
