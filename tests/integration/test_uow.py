@@ -10,6 +10,15 @@ from ..random_refs import random_sku, random_batch_ref, random_order_id
 
 
 def insert_batch(session, reference, sku, quantity, eta, product_version=1):
+    sql_insert = ('INSERT INTO products '
+                  '(sku, version_number) '
+                  'VALUES (:sku, :version_number) '
+                  )
+    batch_param = dict(
+        sku=sku,
+        version_number=product_version
+    )
+    session.execute(sql_insert, batch_param)
     sql_insert = ('INSERT INTO batches '
                   '(reference, _purchased_quantity, sku, eta) '
                   'VALUES (:reference, :quantity, :sku, :eta) '

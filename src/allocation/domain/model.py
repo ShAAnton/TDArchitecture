@@ -63,9 +63,10 @@ class Batch:
 
 
 class Product:
-    def __init__(self, sku: str, batches: List[Batch]):
+    def __init__(self, sku: str, batches: List[Batch], version_number=1):
         self.sku = sku
         self.batches = batches
+        self.version_number = version_number
 
     def allocate(self, line: OrderLine) -> str:
         try:
