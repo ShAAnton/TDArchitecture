@@ -2,16 +2,24 @@
 # Example application code for the python architecture book
 https://github.com/python-leap/code/branches/all
 
+## Implemented design patterns
+Repository -- an abstraction over the idea of persistent storage
+Unit of Work -- abstraction over the idea of atomic operations
+Aggregate -- enforces the integrity of the data
+
+## Using techniques
+Test-Driven development
+Domain-Driven design
+
+## Layered architecture
+Service Layer -- a layer to handle requests from the outside and to orchestrate workflows of use cases of the system
+
 
 ## Requirements
 
 * docker with docker-compose
-* for chapters 1 and 2, and optionally for the rest: a local python3.13 virtualenv
-
 
 ## Building the containers
-
-_(this is only required from chapter 3 onwards)_
 
 ```sh
 make build
@@ -28,9 +36,6 @@ python3.13 -m venv .venv && source .venv/bin/activate # or however you like to c
 pip install -r requirements.txt
 pip install -e src/
 ```
-
-<!-- TODO: use a make pipinstall command -->
-
 
 ## Running the tests
 
