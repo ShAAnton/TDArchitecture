@@ -74,6 +74,7 @@ class Product:
                 b for b in sorted(self.batches) if b.can_allocate(line)
             )
             batch.allocate(line)
+            self.version_number += 1
             return batch.reference
         except StopIteration:
             raise OutOfStock(f'Out of stock for sku {line.sku}')
@@ -85,6 +86,7 @@ class Product:
                 b for b in sorted(self.batches) if b.can_deallocate(line)
             )
             batch.deallocate(line)
+            self.version_number += 1
             return batch.reference
         except StopIteration:
             raise NotAllocatedLine(f"Can not deallocate not allocated line {line.sku}")
