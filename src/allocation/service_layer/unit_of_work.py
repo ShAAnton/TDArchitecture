@@ -22,10 +22,12 @@ class AbstractionUnitOfWork(abc.ABC):
         raise NotImplementedError
 
 
-# DEFAULT_ENGINE = create_engine(config.get_postgres_uri())
-# DEFAULT_SESSION_FACTORY = sessionmaker(bind=DEFAULT_ENGINE)
+DEFAULT_ENGINE = create_engine(
+    config.get_postgres_uri(),
+    isolation_level='REPEATABLE READ'
+)
+DEFAULT_SESSION_FACTORY = sessionmaker(bind=DEFAULT_ENGINE)
 
-DEFAULT_SESSION_FACTORY = sessionmaker(bind=create_engine(config.get_postgres_uri()))
 
 class SqlAlchemyUnitOfWork(AbstractionUnitOfWork):
     def __init__(self, session_factory=DEFAULT_SESSION_FACTORY):

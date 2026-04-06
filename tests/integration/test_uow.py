@@ -51,8 +51,7 @@ def test_uow_can_retrieve_a_batch_and_allocate_to_it(session_factory):
     insert_batch(session, 'batch1', sku, 100, None)
     session.commit()
 
-    uow = SqlAlchemyUnitOfWork(session_factory)
-    with uow:
+    with SqlAlchemyUnitOfWork(session_factory) as uow:
         product = uow.products.get(sku)
         order_id = 'o1'
         line = model.OrderLine(order_id, sku, 10)
@@ -63,8 +62,7 @@ def test_uow_can_retrieve_a_batch_and_allocate_to_it(session_factory):
     assert batch_ref == 'batch1'
 
 def test_rolls_back_uncommitted_work_by_default(session_factory):
-    uow = unit_of_work.SqlAlchemyUnitOfWork(session_factory)
-    with uow:
+    with SqlAlchemyUnitOfWork(session_factory) as uow:
         insert_batch(uow.session, "batch1", "MEDIUM-PLINTH", 100, None)
 
     new_session = session_factory()
@@ -75,7 +73,7 @@ def test_rolls_back_on_error(session_factory):
     class MyException(Exception):
         pass
 
-    uow = unit_of_work.SqlAlchemyUnitOfWork(session_factory)
+    uow = SqlAlchemyUnitOfWork(session_factory)
     with pytest.raises(MyException):
         with uow:
             insert_batch(uow.session, 'batch1', 'LARGE-FORK', 100, None)
@@ -88,7 +86,7 @@ def test_rolls_back_on_error(session_factory):
 def try_to_allocate(order_id, sku, exceptions):
     line = model.OrderLine(order_id, sku, 10)
     try:
-        with unit_of_work.SqlAlchemyUnitOfWork() as uow:
+        with SqlAlchemyUnitOfWork() as uow:
             product = uow.products.get(sku=sku)
             product.allocate(line)
             time.sleep(0.2)
@@ -118,7 +116,6 @@ def test_concurrent_updates_to_version_are_not_allowed(postgres_session_factory)
         "SELECT version_number FROM products WHERE sku=:sku ",
         dict(sku=sku)
     )
-
     assert version == 2
     [exception] = exceptions
     assert "could not serialize access due to concurrent update" in str(exception)
@@ -131,5 +128,5 @@ def test_concurrent_updates_to_version_are_not_allowed(postgres_session_factory)
         dict(sku=sku)
     )
     assert orders.rowcount == 1
-    with unit_of_work.SqlAlchemyUnitOfWork() as uow:
+    with SqlAlchemyUnitOfWork() as uow:
         uow.session.execute("select 1")
