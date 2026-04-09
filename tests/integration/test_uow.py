@@ -1,12 +1,9 @@
-import traceback
-import threading
 import allocation.service_layer.unit_of_work as unit_of_work
 import pytest
 import allocation.domain.model as model
 from allocation.service_layer.unit_of_work import SqlAlchemyUnitOfWork
-import time
-from ..random_refs import random_sku, random_batch_ref, random_order_id
 
+from ..random_refs import random_sku, random_batch_ref, random_order_id
 
 
 def insert_batch(session, reference, sku, quantity, eta, product_version=1):
@@ -82,6 +79,10 @@ def test_rolls_back_on_error(session_factory):
     new_session = session_factory()
     rows = list(new_session.execute('SELECT * FROM batches'))
     assert rows == []
+
+import traceback
+import threading
+import time
 
 def try_to_allocate(order_id, sku, exceptions):
     line = model.OrderLine(order_id, sku, 10)

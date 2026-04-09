@@ -79,7 +79,6 @@ class Product:
         except StopIteration:
             raise OutOfStock(f'Out of stock for sku {line.sku}')
 
-
     def deallocate(self, line: OrderLine):
         try:
             batch = next(
