@@ -3,6 +3,7 @@ import allocation.adapters.repository as repository
 
 from allocation import config
 from allocation.adapters.orm import sessionmaker, Session, create_engine
+import allocation.service_layer.message_bus as message_bus
 
 class AbstractionUnitOfWork(abc.ABC):
     products: repository.AbstractRepository
@@ -20,6 +21,12 @@ class AbstractionUnitOfWork(abc.ABC):
     @abc.abstractmethod
     def rollback(self):
         raise NotImplementedError
+
+    def publish_events(self):
+        for product in self.products.seen:
+            while product.events:
+                event = product.events.pop(0)
+                message_bus.handle(event)
 
 
 DEFAULT_ENGINE = create_engine(

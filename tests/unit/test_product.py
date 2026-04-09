@@ -69,5 +69,5 @@ def test_records_out_of_stock_event_if_cannot_allocate():
     product.allocate(OrderLine('order1', sku, 10))
 
     allocation = product.allocate(OrderLine('order2', sku, 1))
-    assert product.events[-1] == events.OutOfstock(sku=sku)
+    assert product.events[-1] == events.OutOfStock(sku=sku)
     assert allocation is None
