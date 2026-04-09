@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import *
 from datetime import date
+import allocation.domain.events as events
 
 
 class OutOfStock(Exception):
@@ -67,6 +68,8 @@ class Product:
         self.sku = sku
         self.batches = batches
         self.version_number = version_number
+        self.events = list()
+
 
     def allocate(self, line: OrderLine) -> str:
         try:
@@ -77,7 +80,8 @@ class Product:
             self.version_number += 1
             return batch.reference
         except StopIteration:
-            raise OutOfStock(f'Out of stock for sku {line.sku}')
+            self.events.append(events.OutOfStock(line.sku))
+
 
     def deallocate(self, line: OrderLine):
         try:
@@ -88,4 +92,4 @@ class Product:
             self.version_number += 1
             return batch.reference
         except StopIteration:
-            raise NotAllocatedLine(f"Can not deallocate not allocated line {line.sku}")
+            self.events.append(events.NotAllocatedLine(line.sku))

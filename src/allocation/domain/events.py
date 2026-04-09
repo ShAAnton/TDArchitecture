@@ -6,3 +6,7 @@ class Event:
 @dataclass
 class OutOfStock(Event):
     sku: str
+
+@dataclass
+class NotAllocatedLine(Event):
+    sku: str
