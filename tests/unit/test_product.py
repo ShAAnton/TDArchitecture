@@ -1,6 +1,6 @@
 from datetime import date, timedelta
 import pytest
-from allocation.domain.model import Product, OrderLine, Batch, OutOfStock
+from allocation.domain.model import Product, OrderLine, Batch
 import allocation.domain.events as events
 
 today = date.today()

@@ -1,3 +1,4 @@
+import sqlalchemy.event
 from sqlalchemy import *
 from sqlalchemy import orm
 from sqlalchemy.orm import relationship
@@ -75,3 +76,7 @@ def start_mappers():
             "batches": relationship(batches_mapper)
         }
     )
+
+@sqlalchemy.event.listens_for(model.Product, "load")
+def receive_load(product, _):
+    product.events = []

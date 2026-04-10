@@ -35,7 +35,7 @@ def deallocate():
             quantity=request.json['quantity'],
             uow=unit_of_work.SqlAlchemyUnitOfWork()
         )
-    except (model.NotAllocatedLine, services.InvalidSku) as e:
+    except (services.NotAllocatedLine, services.InvalidSku) as e:
         return jsonify({'message': str(e)}), 400
 
     return jsonify({'batch_ref': batch_ref}), 201
@@ -50,7 +50,9 @@ def allocate():
             quantity=request.json['quantity'],
             uow=unit_of_work.SqlAlchemyUnitOfWork()
         )
-    except (model.OutOfStock, services.InvalidSku) as e:
+        if batch_ref is None:
+            return jsonify({'message': f"Fail to allocate order {request.json['order_id']}"}), 400
+    except services.InvalidSku as e:
         return jsonify({'message': str(e)}), 400
 
     return jsonify({'batch_ref': batch_ref}), 201

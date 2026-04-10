@@ -14,12 +14,12 @@ class AbstractionUnitOfWork(abc.ABC):
     def __exit__(self, *args):
         self.rollback()
 
-    @abc.abstractmethod
     def commit(self):
-        raise NotImplementedError
+        self._commit()
+        self.publish_events()
 
     @abc.abstractmethod
-    def rollback(self):
+    def _commit(self):
         raise NotImplementedError
 
     def publish_events(self):
@@ -27,6 +27,11 @@ class AbstractionUnitOfWork(abc.ABC):
             while product.events:
                 event = product.events.pop(0)
                 message_bus.handle(event)
+
+    @abc.abstractmethod
+    def rollback(self):
+        raise NotImplementedError
+
 
 
 DEFAULT_ENGINE = create_engine(
@@ -49,7 +54,7 @@ class SqlAlchemyUnitOfWork(AbstractionUnitOfWork):
         super().__exit__(*args)
         self.session.close()
 
-    def commit(self):
+    def _commit(self):
         self.session.commit()
 
     def rollback(self):

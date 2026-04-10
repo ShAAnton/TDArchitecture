@@ -70,26 +70,28 @@ class Product:
         self.version_number = version_number
         self.events = list()
 
-
     def allocate(self, line: OrderLine) -> str:
+        allocated_batch_ref = None
         try:
             batch = next(
                 b for b in sorted(self.batches) if b.can_allocate(line)
             )
             batch.allocate(line)
             self.version_number += 1
-            return batch.reference
+            allocated_batch_ref = batch.reference
         except StopIteration:
             self.events.append(events.OutOfStock(line.sku))
+        return allocated_batch_ref
 
-
-    def deallocate(self, line: OrderLine):
+    def deallocate(self, line: OrderLine) -> str:
+        allocated_batch_ref = None
         try:
             batch = next(
                 b for b in sorted(self.batches) if b.can_deallocate(line)
             )
             batch.deallocate(line)
             self.version_number += 1
-            return batch.reference
+            allocated_batch_ref = batch.reference
         except StopIteration:
             self.events.append(events.NotAllocatedLine(line.sku))
+        return allocated_batch_ref

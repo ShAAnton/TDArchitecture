@@ -37,9 +37,8 @@ def deallocate(order_id: str, sku: str, quantity: int, uow: AbstractionUnitOfWor
         if product is None:
             raise InvalidSku(f'Invalid sku {sku}')
         order_line = model.OrderLine(order_id, sku, quantity)
-        try:
-            batch_ref = product.deallocate(order_line)
-        except model.NotAllocatedLine as e:
-            raise NotAllocatedLine(e.args)
+        batch_ref = product.deallocate(order_line)
+        if batch_ref is None:
+            raise NotAllocatedLine(f"Can not deallocate not allocated line {sku}")
         uow.commit()
         return batch_ref

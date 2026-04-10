@@ -9,11 +9,12 @@ from unittest import mock
 class FakeRepository(repository.AbstractRepository):
     def __init__(self, products: Iterable | None = None):
         self._product = set(products) if products else set()
+        super().__init__()
 
-    def add(self, product):
+    def _add(self, product):
         self._product.add(product)
 
-    def get(self, sku):
+    def _get(self, sku):
         return next((p for p in self._product if p.sku == sku), None)
 
     def list(self):
@@ -25,7 +26,7 @@ class FakeUnitOfWork(unit_of_work.AbstractionUnitOfWork):
         self.products = FakeRepository()
         self.commited = False
 
-    def commit(self):
+    def _commit(self):
         self.commited = True
 
     def rollback(self):
@@ -34,7 +35,7 @@ class FakeUnitOfWork(unit_of_work.AbstractionUnitOfWork):
 
 def test_add_batch_for_new_product():
     uow = FakeUnitOfWork()
-    sku = "CRUNCHY-ARMCHAIRT"
+    sku = "CRUNCHY-ARMCHAIR"
     services.add_batch("b1", sku, 100, None, uow)
     assert uow.products.get(sku) is not None
     assert uow.commited is True
