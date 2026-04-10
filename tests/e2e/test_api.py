@@ -1,9 +1,6 @@
 import pytest
-from allocation import config
-import requests
 from ..random_refs import random_sku, random_batch_ref, random_order_id
-import api_client
-
+from . import api_client
 
 
 @pytest.mark.usefixtures('restart_api')
@@ -12,24 +9,22 @@ def test_happy_path_returns_201_and_allocated_batch():
     batch_1 = random_batch_ref(1)
     batch_2 = random_batch_ref(2)
     batch_3 = random_batch_ref(3)
-    api_client.post_to_add_batch(batch_1, sku, 100, '2026-03-16')
-    api_client.post_to_add_batch(batch_2, sku, 100, '2026-03-17')
+    api_client.post_to_add_batch(batch_1, sku, 100, '2026-03-17')
+    api_client.post_to_add_batch(batch_2, sku, 100, '2026-03-16')
     api_client.post_to_add_batch(batch_3, other_sku, 100, None)
-    pos_param = {'order_id': random_order_id(), 'sku': sku, 'quantity': 3}
-    url = config.get_api_url()
-    r = requests.post(f'{url}/allocate', json=pos_param)
-    assert r.status_code == 201
-    assert r.json()['batch_ref'] == batch_1
+
+    response = api_client.post_to_allocate(random_order_id(), sku, 3)
+
+    assert response.json()['batch_ref'] == batch_2
 
 
 @pytest.mark.usefixtures('restart_api')
 def test_unhappy_path_returns_400_and_error_message():
     unknown_sku, order_id = random_sku(), random_order_id()
-    pos_param = {'order_id': order_id, 'sku': unknown_sku, 'quantity': 20}
-    url = config.get_api_url()
-    r = requests.post(f'{url}/allocate', json=pos_param)
-    assert r.status_code == 400
-    assert r.json()['message'] == f'Invalid sku {unknown_sku}'
+    response = api_client.post_to_allocate(order_id, unknown_sku, 20, expect_success=False)
+
+    assert response.status_code == 400
+    assert response.json()['message'] == f'Invalid sku {unknown_sku}'
 
 
 @pytest.mark.usefixtures("postgres_db")
@@ -38,40 +33,20 @@ def test_deallocate():
     sku, order1, order2 = random_sku(), random_order_id(), random_order_id()
     batch_ref = random_batch_ref()
     api_client.post_to_add_batch(batch_ref, sku, 100, "2011-01-02")
-    url = config.get_api_url()
+
     # fully allocate
-    r = requests.post(
-        f"{url}/allocate",
-        json={"order_id": order1,
-              "sku": sku,
-              "quantity": 100}
-    )
-    assert r.json()["batch_ref"] == batch_ref
+    response = api_client.post_to_allocate(order1, sku, 100)
+    assert response.json()["batch_ref"] == batch_ref
 
     # cannot allocate second order
-    r = requests.post(
-        f"{url}/allocate",
-        json={"order_id": order2,
-              "sku": sku,
-              "quantity": 100}
-    )
-    assert r.status_code == 400
+    response = api_client.post_to_allocate(order2, sku, 100, expect_success=False)
+    assert response.status_code == 400
 
     # deallocate
-    r = requests.post(
-        f"{url}/deallocate",
-        json={"order_id": order1,
-              "sku": sku,
-              "quantity": 100}
-    )
-    assert r.status_code == 201
+    response = api_client.post_to_deallocate(order1, sku, 100)
+    assert response.status_code == 201
 
     # now we can allocate second order
-    r = requests.post(
-        f"{url}/allocate",
-        json={"order_id": order2,
-              "sku": sku,
-              "quantity": 100}
-    )
-    assert r.status_code == 201
-    assert r.json()["batch_ref"] == batch_ref
+    response = api_client.post_to_allocate(order2, sku, 100)
+    assert response.status_code == 201
+    assert response.json()["batch_ref"] == batch_ref
