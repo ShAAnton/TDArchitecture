@@ -2,18 +2,9 @@ import pytest
 from allocation import config
 import requests
 from ..random_refs import random_sku, random_batch_ref, random_order_id
+import api_client
 
 
-def post_to_add_batch(batch_ref, sku, quantity, eta=None):
-    url = config.get_api_url()
-    r = requests.post(
-        f"{url}/add_batch",
-        json={"batch_ref": batch_ref,
-              "sku": sku,
-              "quantity": quantity,
-              "eta": eta}
-    )
-    assert r.status_code == 201
 
 @pytest.mark.usefixtures('restart_api')
 def test_happy_path_returns_201_and_allocated_batch():
@@ -21,9 +12,9 @@ def test_happy_path_returns_201_and_allocated_batch():
     batch_1 = random_batch_ref(1)
     batch_2 = random_batch_ref(2)
     batch_3 = random_batch_ref(3)
-    post_to_add_batch(batch_1, sku, 100, '2026-03-16')
-    post_to_add_batch(batch_2, sku, 100, '2026-03-17')
-    post_to_add_batch(batch_3, other_sku, 100, None)
+    api_client.post_to_add_batch(batch_1, sku, 100, '2026-03-16')
+    api_client.post_to_add_batch(batch_2, sku, 100, '2026-03-17')
+    api_client.post_to_add_batch(batch_3, other_sku, 100, None)
     pos_param = {'order_id': random_order_id(), 'sku': sku, 'quantity': 3}
     url = config.get_api_url()
     r = requests.post(f'{url}/allocate', json=pos_param)
@@ -46,7 +37,7 @@ def test_unhappy_path_returns_400_and_error_message():
 def test_deallocate():
     sku, order1, order2 = random_sku(), random_order_id(), random_order_id()
     batch_ref = random_batch_ref()
-    post_to_add_batch(batch_ref, sku, 100, "2011-01-02")
+    api_client.post_to_add_batch(batch_ref, sku, 100, "2011-01-02")
     url = config.get_api_url()
     # fully allocate
     r = requests.post(
