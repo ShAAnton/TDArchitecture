@@ -1,6 +1,6 @@
-from allocation.domain import model
+from allocation.domain import model, events
+from allocation.adapters import email
 from allocation.service_layer.unit_of_work import AbstractionUnitOfWork
-
 
 class InvalidSku(Exception):
     pass
@@ -42,3 +42,9 @@ def deallocate(order_id: str, sku: str, quantity: int, uow: AbstractionUnitOfWor
             raise NotAllocatedLine(f"Can not deallocate not allocated line {sku}")
         uow.commit()
         return batch_ref
+
+def send_out_of_stock_notification(event: events.OutOfStock, uow: AbstractionUnitOfWork):
+    email.send_mail(
+        'stock@made.com',
+        f'Out of stock for {event.sku}'
+    )

@@ -1,17 +1,22 @@
 from typing import Dict, Type, List, Callable
 import allocation.domain.events as events
-import allocation.adapters.email as email
+import allocation.service_layer.handlers
+from allocation.service_layer.unit_of_work import AbstractionUnitOfWork
 
-def handle(event: events.Event):
-    for handler in HANDLERS[type(event)]:
-        handler(event)
 
-def send_out_of_stock_notification(event: events.OutOfStock):
-    email.send_mail(
-        'stock@made.com',
-        f'Out of stock for {event.sku}'
-    )
+def handle(events_: List[events.Event], uow: AbstractionUnitOfWork):
+    results = []
+    while events_:
+        event = events_.pop(0)
+        print('handling message', event)
+        for handler in HANDLERS[type(event)]:
+            r = handler(event, uow)
+            print('got result', r)
+            results.append(r)
+    return results
+
 
 HANDLERS: Dict[Type[events.Event], List[Callable]] = {
-    events.OutOfStock: [send_out_of_stock_notification]
+    events.OutOfStock: [allocation.service_layer.handlers.send_out_of_stock_notification],
+    events.BatchCreated: [allocation.service_layer.handlers.add_batch]
 }

@@ -3,7 +3,7 @@ import allocation.adapters.repository as repository
 
 from allocation import config
 from allocation.adapters.orm import sessionmaker, Session, create_engine
-import allocation.service_layer.message_bus as message_bus
+
 
 class AbstractionUnitOfWork(abc.ABC):
     products: repository.AbstractRepository
@@ -16,17 +16,16 @@ class AbstractionUnitOfWork(abc.ABC):
 
     def commit(self):
         self._commit()
-        self.publish_events()
 
     @abc.abstractmethod
     def _commit(self):
         raise NotImplementedError
 
-    def publish_events(self):
+    def collect_new_events(self):
         for product in self.products.seen:
             while product.events:
-                event = product.events.pop(0)
-                message_bus.handle(event)
+                yield product.events.pop(0)
+
 
     @abc.abstractmethod
     def rollback(self):
