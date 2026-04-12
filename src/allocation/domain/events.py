@@ -32,3 +32,14 @@ class DeallocationRequired(Event):
     sku: str
     quantity: int
 
+
+@dataclass
+class AllocationRequest:
+    order1: str
+    sku: str
+    quantity: int
+
+@dataclass
+class BatchQuantityChanged:
+    batch_ref: str
+    quantity: int

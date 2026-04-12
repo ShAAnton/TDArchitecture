@@ -5,14 +5,13 @@ from allocation.service_layer.unit_of_work import AbstractionUnitOfWork
 
 
 def handle(events_: List[events.Event], uow: AbstractionUnitOfWork):
-    results = []
-    while events_:
-        event = events_.pop(0)
-        print('handling message', event)
+    results, queue = list(), list()
+    queue.extend(events_)
+    while queue:
+        event = queue.pop(0)
         for handler in HANDLERS[type(event)]:
-            r = handler(event, uow)
-            print('got result', r)
-            results.append(r)
+            results.append(handler(event, uow))
+            queue.extend(uow.collect_new_events())
     return results
 
 

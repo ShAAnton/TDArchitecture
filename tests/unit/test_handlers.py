@@ -135,7 +135,7 @@ class TestChangeBatchQuantity:
         uow = FakeUnitOfWork()
         message_bus.handle([
             events.BatchCreated("batch1", sku, 100, None)
-        ])
+        ], uow)
         [batch] = uow.products.get(sku=sku).batches
         assert batch.available_quantity == 100
 

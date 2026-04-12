@@ -32,7 +32,7 @@ def deallocate(event: events.DeallocationRequired, uow: AbstractionUnitOfWork):
         order_line = model.OrderLine(event.order_id, event.sku, event.quantity)
         batch_ref = product.deallocate(order_line)
         if batch_ref is None:
-            raise exceptions.NotAllocatedLine(f"Can not deallocate not allocated line {sku}")
+            raise exceptions.NotAllocatedLine(f"Can not deallocate not allocated line {event.sku}")
         uow.commit()
         return batch_ref
 
