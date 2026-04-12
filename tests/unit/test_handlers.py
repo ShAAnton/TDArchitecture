@@ -23,6 +23,13 @@ class FakeRepository(repository.AbstractRepository):
     def _get(self, sku):
         return next((p for p in self._product if p.sku == sku), None)
 
+    def _get_by_batch_ref(self, batch_ref: str):
+        for product in self._product:
+            for batch in product.batches:
+                if batch.reference == batch_ref:
+                    return product
+        return None
+
     def list(self):
         return list(self._product)
 
