@@ -68,7 +68,7 @@ class TestAllocate:
     def test_allocate_returns_allocation():
         sku = "COMPLICATED-LAMP"
         uow = FakeUnitOfWork()
-        result = message_bus.events([
+        result = message_bus.handle([
             events.BatchCreated("b1", sku, 100, None),
             events.AllocationRequired("o1", sku, 10)
         ], uow)

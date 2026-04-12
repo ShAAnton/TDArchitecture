@@ -18,5 +18,6 @@ def handle(events_: List[events.Event], uow: AbstractionUnitOfWork):
 
 HANDLERS: Dict[Type[events.Event], List[Callable]] = {
     events.OutOfStock: [allocation.service_layer.handlers.send_out_of_stock_notification],
-    events.BatchCreated: [allocation.service_layer.handlers.add_batch]
+    events.BatchCreated: [allocation.service_layer.handlers.add_batch],
+    events.AllocationRequired: [allocation.service_layer.handlers.allocate]
 }

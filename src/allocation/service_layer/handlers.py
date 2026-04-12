@@ -2,6 +2,7 @@ from allocation.domain import model, events
 from allocation.adapters import email
 from allocation.service_layer.unit_of_work import AbstractionUnitOfWork
 
+
 class InvalidSku(Exception):
     pass
 
@@ -10,33 +11,33 @@ class NotAllocatedLine(Exception):
     pass
 
 
-def add_batch(batch_ref, sku, quantity, eta, uow: AbstractionUnitOfWork):
+def add_batch(event: events.BatchCreated, uow: AbstractionUnitOfWork):
     with uow:
-        product = uow.products.get(sku)
+        product = uow.products.get(event.sku)
         if product is None:
-            product = model.Product(sku, [])
+            product = model.Product(event.sku, [])
             uow.products.add(product)
-        batch = model.Batch(batch_ref, sku, quantity, eta)
+        batch = model.Batch(event.batch_ref, event.sku, event.quantity, event.eta)
         product.batches.append(batch)
         uow.commit()
 
 
-def allocate(order_id: str, sku: str, quantity: int, uow: AbstractionUnitOfWork) -> str:
+def allocate(event: events.AllocationRequired, uow: AbstractionUnitOfWork) -> str:
     with uow:
-        products = uow.products.get(sku)
+        products = uow.products.get(event.sku)
         if products is None:
-            raise InvalidSku(f'Invalid sku {sku}')
-        order_line = model.OrderLine(order_id, sku, quantity)
+            raise InvalidSku(f'Invalid sku {event.sku}')
+        order_line = model.OrderLine(event.order_id, event.sku, event.quantity)
         batch_ref = products.allocate(order_line)
         uow.commit()
         return batch_ref
 
-def deallocate(order_id: str, sku: str, quantity: int, uow: AbstractionUnitOfWork):
+def deallocate(event: events.DeallocationRequired, uow: AbstractionUnitOfWork):
     with uow:
-        product = uow.products.get(sku)
+        product = uow.products.get(event.sku)
         if product is None:
-            raise InvalidSku(f'Invalid sku {sku}')
-        order_line = model.OrderLine(order_id, sku, quantity)
+            raise InvalidSku(f'Invalid sku {event.sku}')
+        order_line = model.OrderLine(event.order_id, event.sku, event.quantity)
         batch_ref = product.deallocate(order_line)
         if batch_ref is None:
             raise NotAllocatedLine(f"Can not deallocate not allocated line {sku}")
