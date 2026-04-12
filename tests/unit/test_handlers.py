@@ -110,7 +110,7 @@ class TestAllocate:
             ], uow)
             assert mock_send_email.call_args == mock.call(
                 "stock@made.com",
-                f"Out of stock for POPULAR-CURTAINS"
+                f"Out of stock for {sku}"
             )
 
     @staticmethod
