@@ -18,6 +18,9 @@ class AbstractRepository(abc.ABC):
             self.seen.add(product)
         return product
 
+    def get_by_batch_ref(self, batch_ref: str):
+        pass
+
     @abc.abstractmethod
     def _add(self, product: model.Product):
         raise NotImplementedError
@@ -25,6 +28,7 @@ class AbstractRepository(abc.ABC):
     @abc.abstractmethod
     def _get(self, sku) -> model.Product:
         raise NotImplementedError
+
 
 
 class SQLAlchemyRepository(AbstractRepository):
