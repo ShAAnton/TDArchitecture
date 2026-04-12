@@ -2,7 +2,7 @@ from flask import Flask, jsonify, request
 from sqlalchemy import create_engine
 
 from allocation import config
-from allocation.domain import model
+from allocation.domain import events, exceptions
 from allocation.adapters import orm, repository
 from allocation.service_layer import handlers
 from allocation.service_layer import unit_of_work
@@ -17,11 +17,14 @@ def add_batch():
     eta = request.json['eta']
     if eta is not None:
         eta = datetime.date.fromisoformat(eta)
+
     handlers.add_batch(
-        batch_ref=request.json['batch_ref'],
-        sku=request.json['sku'],
-        quantity=request.json['quantity'],
-        eta=eta,
+        events.BatchCreated(
+            batch_ref=request.json['batch_ref'],
+            sku=request.json['sku'],
+            quantity=request.json['quantity'],
+            eta=eta
+        ),
         uow=unit_of_work.SqlAlchemyUnitOfWork()
     )
     return 'OK', 201
@@ -30,12 +33,14 @@ def add_batch():
 def deallocate():
     try:
         batch_ref = handlers.deallocate(
-            order_id=request.json['order_id'],
-            sku=request.json['sku'],
-            quantity=request.json['quantity'],
+            events.DeallocationRequired(
+                order_id=request.json['order_id'],
+                sku=request.json['sku'],
+                quantity=request.json['quantity']
+            ),
             uow=unit_of_work.SqlAlchemyUnitOfWork()
         )
-    except (handlers.NotAllocatedLine, handlers.InvalidSku) as e:
+    except (exceptions.NotAllocatedLine, exceptions.InvalidSku) as e:
         return jsonify({'message': str(e)}), 400
 
     return jsonify({'batch_ref': batch_ref}), 201
@@ -45,14 +50,16 @@ def deallocate():
 def allocate():
     try:
         batch_ref = handlers.allocate(
-            order_id=request.json['order_id'],
-            sku=request.json['sku'],
-            quantity=request.json['quantity'],
+            events.AllocationRequired(
+                order_id=request.json['order_id'],
+                sku=request.json['sku'],
+                quantity=request.json['quantity']
+            ),
             uow=unit_of_work.SqlAlchemyUnitOfWork()
         )
         if batch_ref is None:
             return jsonify({'message': f"Fail to allocate order {request.json['order_id']}"}), 400
-    except handlers.InvalidSku as e:
+    except exceptions.InvalidSku as e:
         return jsonify({'message': str(e)}), 400
 
     return jsonify({'batch_ref': batch_ref}), 201
