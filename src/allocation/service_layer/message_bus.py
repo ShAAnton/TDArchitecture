@@ -4,9 +4,9 @@ import allocation.service_layer.handlers
 from allocation.service_layer.unit_of_work import AbstractionUnitOfWork
 
 
-def handle(events_: List[events.Event], uow: AbstractionUnitOfWork):
+def handle(event: events.Event, uow: AbstractionUnitOfWork):
     results, queue = list(), list()
-    queue.extend(events_)
+    queue = [event]
     while queue:
         event = queue.pop(0)
         for handler in HANDLERS[type(event)]:

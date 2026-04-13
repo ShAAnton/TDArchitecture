@@ -52,9 +52,9 @@ class TestAddBatch:
         uow = FakeUnitOfWork()
         sku = "CRUNCHY-ARMCHAIR"
         message_bus.handle(
-            [
-                events.BatchCreated("b1", sku, 100, None)
-            ], uow)
+            events.BatchCreated("b1", sku, 100, None),
+            uow
+        )
         assert uow.products.get(sku) is not None
         assert uow.commited is True
 
@@ -62,10 +62,12 @@ class TestAddBatch:
     def test_add_batch_for_existing_product():
         uow = FakeUnitOfWork()
         sku = "GARISH-RUG"
-        message_bus.handle([
+        events_history = [
             events.BatchCreated("b1", sku, 100, None),
             events.BatchCreated("b2", sku, 99, None)
-        ], uow)
+        ]
+        for event in events_history:
+            message_bus.handle(event, uow)
         assert "b2" in [b.reference for b in uow.products.get(sku).batches]
 
 
@@ -75,46 +77,50 @@ class TestAllocate:
     def test_allocate_returns_allocation():
         sku = "COMPLICATED-LAMP"
         uow = FakeUnitOfWork()
-        result = message_bus.handle([
-            events.BatchCreated("b1", sku, 100, None),
-            events.AllocationRequired("o1", sku, 10)
-        ], uow)
+        message_bus.handle(
+            events.BatchCreated("b1", sku, 100, None), uow
+        )
+        result = message_bus.handle(
+            events.AllocationRequired("o1", sku, 10), uow
+        )
         assert result.pop() == "b1"
 
     @staticmethod
     def test_allocate_error_for_invalid_sku():
         sku, invalid_sku = "AREALSKU", "NONEXISTENTSKU"
         uow = FakeUnitOfWork()
-        message_bus.handle([
-            events.BatchCreated("b1", sku, 100, None)
-        ], uow)
+        message_bus.handle(
+            events.BatchCreated("b1", sku, 100, None), uow
+        )
         with pytest.raises(exceptions.InvalidSku, match=f"Invalid sku {invalid_sku}"):
-            message_bus.handle([
-                events.AllocationRequired("o1", invalid_sku, 10)
-            ], uow)
+            message_bus.handle(
+                events.AllocationRequired("o1", invalid_sku, 10), uow
+            )
 
     @staticmethod
     def test_allocate_commits():
         sku = "OMINOUS-MIRROR"
         uow = FakeUnitOfWork()
-        message_bus.handle([
-            events.BatchCreated("b1", sku, 100, None),
-            events.AllocationRequired("o1", sku, 10)
-        ], uow)
+        message_bus.handle(
+            events.BatchCreated("b1", sku, 100, None), uow
+        )
+        message_bus.handle(
+            events.AllocationRequired("o1", sku, 10), uow
+        )
         assert uow.commited is True
 
     @staticmethod
     def test_sends_email_on_out_of_stock_error():
         uow = FakeUnitOfWork()
         sku = "POPULAR-CURTAINS"
-        message_bus.handle([
-            events.BatchCreated("b1", sku, 9, None)
-        ], uow)
+        message_bus.handle(
+            events.BatchCreated("b1", sku, 9, None), uow
+        )
 
         with mock.patch("allocation.adapters.email.send_email") as mock_send_email:
-            message_bus.handle([
-                events.AllocationRequired("o1", sku, 10)
-            ], uow)
+            message_bus.handle(
+                events.AllocationRequired("o1", sku, 10), uow
+            )
             assert mock_send_email.call_args == mock.call(
                 "stock@made.com",
                 f"Out of stock for {sku}"
@@ -124,14 +130,14 @@ class TestAllocate:
     def test_trying_to_deallocate_unallocated_batch():
         sku = "SOLONG_BATCH"
         uow = FakeUnitOfWork()
-        message_bus.handle([
-            events.BatchCreated("b1", sku, 100, eta=None)
-        ], uow)
+        message_bus.handle(
+            events.BatchCreated("b1", sku, 100, eta=None), uow
+        )
         not_allocated_line = ("o1", sku, 10)
         with pytest.raises(exceptions.NotAllocatedLine, match=f"Can not deallocate not allocated line {sku}"):
-            message_bus.handle([
-                events.DeallocationRequired(*not_allocated_line)
-            ], uow)
+            message_bus.handle(
+                events.DeallocationRequired(*not_allocated_line), uow
+            )
 
 
 class TestChangeBatchQuantity:
@@ -140,15 +146,15 @@ class TestChangeBatchQuantity:
     def test_changes_available_quantity():
         sku = "ADORABLE-SETTEE"
         uow = FakeUnitOfWork()
-        message_bus.handle([
-            events.BatchCreated("batch1", sku, 100, None)
-        ], uow)
+        message_bus.handle(
+            events.BatchCreated("batch1", sku, 100, None), uow
+        )
         [batch] = uow.products.get(sku=sku).batches
         assert batch.available_quantity == 100
 
-        message_bus.handle([
-            events.BatchQuantityChanged("batch1", 50)
-        ], uow)
+        message_bus.handle(
+            events.BatchQuantityChanged("batch1", 50), uow
+        )
 
         assert batch.available_quantity == 50
 
@@ -156,19 +162,21 @@ class TestChangeBatchQuantity:
     def test_reallocate_if_necessary():
         uow = FakeUnitOfWork()
         sku = "INDIFFERENT-TABLE"
-        message_bus.handle([
+        event_history = [
             events.BatchCreated("batch1", sku, 50, None),
             events.BatchCreated("batch2", sku, 50, date.today()),
             events.AllocationRequired("order1", sku, 20),
             events.AllocationRequired("order2", sku, 20),
-        ], uow)
+        ]
+        for event in event_history:
+            message_bus.handle(event, uow)
         [batch1, batch2] = uow.products.get(sku=sku).batches
         assert batch1.available_quantity == 10
         assert batch2.available_quantity == 50
 
-        message_bus.handle([
-            events.BatchQuantityChanged("batch1", 20)
-        ], uow)
+        message_bus.handle(
+            events.BatchQuantityChanged("batch1", 20), uow
+        )
 
         # order1 or order2 will be deallocated, so we"ll have 20 - 20 * 1
         assert batch1.available_quantity == 0
@@ -179,11 +187,13 @@ class TestChangeBatchQuantity:
     def test_deallocate_decrements_available_quantity():
         sku = "BLUE-PLINTH"
         uow = FakeUnitOfWork()
-        message_bus.handle([
+        event_history = [
             events.BatchCreated("b1", sku, 100, None),
             events.AllocationRequired("o1", sku, 10),
             events.DeallocationRequired("o1", sku, 10)
-        ], uow)
+        ]
+        for event in event_history:
+            message_bus.handle(event, uow)
         [batch] = uow.products.get(sku).batches
         assert batch.available_quantity == 100
 
@@ -191,15 +201,17 @@ class TestChangeBatchQuantity:
     def test_deallocate_decrements_correct_quantity():
         sku = "GOODBATCH"
         uow = FakeUnitOfWork()
-        message_bus.handle([
-            events.BatchCreated("b1", sku, quantity=100, eta=None),
-            events.AllocationRequired("o1", sku, 10)
-        ], uow)
+        message_bus.handle(
+            events.BatchCreated("b1", sku, quantity=100, eta=None), uow
+        )
+        message_bus.handle(
+            events.AllocationRequired("o1", sku, 10), uow
+        )
         wrong_quantity_line = ("o1", sku, 5)
         try:
-            message_bus.handle([
-                events.DeallocationRequired(*wrong_quantity_line)
-            ], uow)
+            message_bus.handle(
+                events.DeallocationRequired(*wrong_quantity_line), uow
+            )
         except exceptions.NotAllocatedLine:
             pass
         [batch] = uow.products.get(sku).batches
