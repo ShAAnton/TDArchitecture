@@ -159,18 +159,19 @@ class TestChangeBatchQuantity:
         message_bus.handle([
             events.BatchCreated("batch1", sku, 50, None),
             events.BatchCreated("batch2", sku, 50, date.today()),
-            events.AllocationRequest("order1", sku, 20),
-            events.AllocationRequest("order2", sku, 20),
+            events.AllocationRequired("order1", sku, 20),
+            events.AllocationRequired("order2", sku, 20),
         ], uow)
         [batch1, batch2] = uow.products.get(sku=sku).batches
         assert batch1.available_quantity == 10
+        assert batch2.available_quantity == 50
 
         message_bus.handle([
             events.BatchQuantityChanged("batch1", 20)
         ], uow)
 
-        # order1 or order2 will be deallocated, so we"ll have 25 - 20 * 1
-        assert batch1.available_quantity == 5
+        # order1 or order2 will be deallocated, so we"ll have 20 - 20 * 1
+        assert batch1.available_quantity == 0
         # and 20 will be reallocated to the next batch
         assert batch2.available_quantity == 30
 

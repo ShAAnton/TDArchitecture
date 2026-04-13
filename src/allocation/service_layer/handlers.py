@@ -36,6 +36,13 @@ def deallocate(event: events.DeallocationRequired, uow: AbstractionUnitOfWork):
         uow.commit()
         return batch_ref
 
+
+def change_batch_quantity(event: events.BatchQuantityChanged, uow: AbstractionUnitOfWork):
+    product = uow.products.get_by_batch_ref(event.batch_ref)
+    product.change_batch_quantity(batch_ref=event.batch_ref, quantity=event.quantity)
+    uow.commit()
+
+
 def send_out_of_stock_notification(event: events.OutOfStock, uow: AbstractionUnitOfWork):
     email.send_email(
         'stock@made.com',

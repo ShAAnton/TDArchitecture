@@ -19,5 +19,6 @@ HANDLERS: Dict[Type[events.Event], List[Callable]] = {
     events.OutOfStock: [allocation.service_layer.handlers.send_out_of_stock_notification],
     events.BatchCreated: [allocation.service_layer.handlers.add_batch],
     events.AllocationRequired: [allocation.service_layer.handlers.allocate],
-    events.DeallocationRequired: [allocation.service_layer.handlers.deallocate]
+    events.DeallocationRequired: [allocation.service_layer.handlers.deallocate],
+    events.BatchQuantityChanged: [allocation.service_layer.handlers.change_batch_quantity]
 }

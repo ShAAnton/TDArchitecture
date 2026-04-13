@@ -31,15 +31,18 @@ class Batch:
         if self.can_allocate(line):
             self._allocations.add(line)
 
+    def can_allocate(self, line: OrderLine):
+        return self.sku == line.sku and self.available_quantity >= line.quantity
+
     def deallocate(self, line: OrderLine):
         if line in self._allocations:
             self._allocations.remove(line)
 
-    def can_allocate(self, line: OrderLine):
-        return self.sku == line.sku and self.available_quantity >= line.quantity
-
     def can_deallocate(self, line: OrderLine):
         return line in self._allocations
+
+    def deallocate_one(self):
+        return self._allocations.pop()
 
     @property
     def allocated_quantity(self) -> int:
@@ -95,3 +98,14 @@ class Product:
         except StopIteration:
             self.events.append(events.NotAllocatedLine(line.sku))
         return allocated_batch_ref
+
+    def change_batch_quantity(self, batch_ref, quantity):
+        batch  = next(
+            b for b in self.batches if b.reference == batch_ref
+        )
+        batch._purchased_quantity = quantity
+        while batch.available_quantity < 0:
+            line = batch.deallocate_one()
+            self.events.append(
+                events.AllocationRequired(line.order_id, line.sku, line.quantity)
+            )

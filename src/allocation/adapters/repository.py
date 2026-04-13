@@ -1,6 +1,7 @@
 import abc
 from typing import Set
 from allocation.domain import model
+from allocation.adapters import orm
 from allocation.adapters.orm import Session
 
 
@@ -12,11 +13,19 @@ class AbstractRepository(abc.ABC):
         self._add(product)
         self.seen.add(product)
 
+    @abc.abstractmethod
+    def _add(self, product: model.Product):
+        raise NotImplementedError
+
     def get(self, sku) -> model.Product:
         product = self._get(sku)
         if product:
             self.seen.add(product)
         return product
+
+    @abc.abstractmethod
+    def _get(self, sku) -> model.Product:
+        raise NotImplementedError
 
     def get_by_batch_ref(self, batch_ref: str):
         product = self._get_by_batch_ref(batch_ref)
@@ -26,14 +35,6 @@ class AbstractRepository(abc.ABC):
 
     @abc.abstractmethod
     def _get_by_batch_ref(self, batch_ref: str):
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def _add(self, product: model.Product):
-        raise NotImplementedError
-
-    @abc.abstractmethod
-    def _get(self, sku) -> model.Product:
         raise NotImplementedError
 
 
@@ -51,7 +52,9 @@ class SQLAlchemyRepository(AbstractRepository):
         return self.session.query(model.Product).filter_by(sku=sku).first()
 
     def _get_by_batch_ref(self, batch_ref):
-        batch: model.Batch | None = self.session.query(model.Batch).filter_by(reference=batch_ref).first()
-        if batch is not None:
-            return self.session.query(model.Product).filter_by(sku=batch.sku).first()
-        return None
+        product = (self.session
+                   .query(model.Product)
+                   .join(model.Batch)
+                   .filter(model.Batch.reference == batch_ref)
+                   .first())
+        return product
