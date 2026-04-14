@@ -55,6 +55,6 @@ class SQLAlchemyRepository(AbstractRepository):
         product = (self.session
                    .query(model.Product)
                    .join(model.Batch)
-                   .filter(model.Batch.reference == batch_ref)
+                   .filter_by(reference=batch_ref)
                    .first())
         return product

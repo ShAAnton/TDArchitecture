@@ -38,6 +38,7 @@ def deallocate(event: events.DeallocationRequired, uow: AbstractionUnitOfWork):
 
 
 def change_batch_quantity(event: events.BatchQuantityChanged, uow: AbstractionUnitOfWork):
+    # looks like bag no with uow
     product = uow.products.get_by_batch_ref(event.batch_ref)
     product.change_batch_quantity(batch_ref=event.batch_ref, quantity=event.quantity)
     uow.commit()

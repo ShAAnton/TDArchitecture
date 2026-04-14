@@ -46,6 +46,17 @@ class FakeUnitOfWork(unit_of_work.AbstractionUnitOfWork):
         pass
 
 
+class FakeUnitOfWorkWithFakeMessageBus(FakeUnitOfWork):
+
+    def __init__(self):
+        super().__init__()
+        self.new_events_published = []
+
+    def collect_new_events(self):
+        for new_event in super().collect_new_events():
+            self.new_events_published.append(new_event)
+            yield new_event
+
 class TestAddBatch:
     @staticmethod
     def test_add_batch_for_new_product():
@@ -178,6 +189,32 @@ class TestChangeBatchQuantity:
             events.BatchQuantityChanged("batch1", 20), uow
         )
 
+        # order1 or order2 will be deallocated, so we"ll have 20 - 20 * 1
+        assert batch1.available_quantity == 0
+        # and 20 will be reallocated to the next batch
+        assert batch2.available_quantity == 30
+
+    @staticmethod
+    def test_reallocate_if_necessary_isolated():
+        uow = FakeUnitOfWorkWithFakeMessageBus()
+        sku = "INDIFFERENT-TABLE"
+        event_history = [
+            events.BatchCreated("batch1", sku, 50, None),
+            events.BatchCreated("batch2", sku, 50, date.today()),
+            events.AllocationRequired("order1", sku, 20),
+            events.AllocationRequired("order2", sku, 20),
+        ]
+        for event in event_history:
+            message_bus.handle(event, uow)
+        [batch1, batch2] = uow.products.get(sku=sku).batches
+        assert batch1.available_quantity == 10
+        assert batch2.available_quantity == 50
+
+        message_bus.handle(
+            events.BatchQuantityChanged("batch1", 20), uow
+        )
+        [reallocation_event] = uow.new_events_published
+        assert isinstance(reallocation_event, events.AllocationRequired)
         # order1 or order2 will be deallocated, so we"ll have 20 - 20 * 1
         assert batch1.available_quantity == 0
         # and 20 will be reallocated to the next batch
