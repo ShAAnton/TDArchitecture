@@ -14,33 +14,33 @@ def add_batch(command: commands.CreateBatch, uow: AbstractionUnitOfWork):
         uow.commit()
 
 
-def allocate(event: events.AllocationRequired, uow: AbstractionUnitOfWork) -> str:
+def allocate(command: commands.Allocate, uow: AbstractionUnitOfWork) -> str:
     with uow:
-        products = uow.products.get(event.sku)
+        products = uow.products.get(command.sku)
         if products is None:
-            raise exceptions.InvalidSku(f'Invalid sku {event.sku}')
-        order_line = model.OrderLine(event.order_id, event.sku, event.quantity)
+            raise exceptions.InvalidSku(f'Invalid sku {command.sku}')
+        order_line = model.OrderLine(command.order_id, command.sku, command.quantity)
         batch_ref = products.allocate(order_line)
         uow.commit()
         return batch_ref
 
-def deallocate(event: events.DeallocationRequired, uow: AbstractionUnitOfWork):
+def deallocate(command: commands.Deallocate, uow: AbstractionUnitOfWork):
     with uow:
-        product = uow.products.get(event.sku)
+        product = uow.products.get(command.sku)
         if product is None:
-            raise exceptions.InvalidSku(f'Invalid sku {event.sku}')
-        order_line = model.OrderLine(event.order_id, event.sku, event.quantity)
+            raise exceptions.InvalidSku(f'Invalid sku {command.sku}')
+        order_line = model.OrderLine(command.order_id, command.sku, command.quantity)
         batch_ref = product.deallocate(order_line)
         if batch_ref is None:
-            raise exceptions.NotAllocatedLine(f"Can not deallocate not allocated line {event.sku}")
+            raise exceptions.NotAllocatedLine(f"Can not deallocate not allocated line {command.sku}")
         uow.commit()
         return batch_ref
 
 
-def change_batch_quantity(event: events.BatchQuantityChanged, uow: AbstractionUnitOfWork):
+def change_batch_quantity(command: commands.ChangeBatchQuantity, uow: AbstractionUnitOfWork):
     # looks like bag no with uow
-    product = uow.products.get_by_batch_ref(event.batch_ref)
-    product.change_batch_quantity(batch_ref=event.batch_ref, quantity=event.quantity)
+    product = uow.products.get_by_batch_ref(command.reference)
+    product.change_batch_quantity(batch_ref=command.reference, quantity=command.quantity)
     uow.commit()
 
 

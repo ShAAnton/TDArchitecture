@@ -21,6 +21,7 @@ class AbstractionMessageBus:
                 self.handle_event(message, queue, self.uow)
             elif isinstance(message, commands.Command):
                 cmd_result = self.handle_command(message, queue, uow=self.uow)
+                results.append(cmd_result)
             else:
                 raise TypeError(f'{message} was not an Event or Command')
         return results
