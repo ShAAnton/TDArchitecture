@@ -1,15 +1,15 @@
-from allocation.domain import model, events, exceptions
+from allocation.domain import model, events, exceptions, commands
 from allocation.adapters import email
 from allocation.service_layer.unit_of_work import AbstractionUnitOfWork
 
 
-def add_batch(event: events.BatchCreated, uow: AbstractionUnitOfWork):
+def add_batch(command: commands.CreateBatch, uow: AbstractionUnitOfWork):
     with uow:
-        product = uow.products.get(event.sku)
+        product = uow.products.get(command.sku)
         if product is None:
-            product = model.Product(event.sku, [])
+            product = model.Product(command.sku, [])
             uow.products.add(product)
-        batch = model.Batch(event.batch_ref, event.sku, event.quantity, event.eta)
+        batch = model.Batch(command.reference, command.sku, command.quantity, command.eta)
         product.batches.append(batch)
         uow.commit()
 

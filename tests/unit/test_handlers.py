@@ -2,7 +2,7 @@ from allocation.adapters import repository
 from allocation.service_layer import handlers
 from allocation.service_layer import unit_of_work
 from allocation.service_layer import message_bus
-from allocation.domain import events
+from allocation.domain import events, commands
 from allocation.domain import exceptions
 import allocation
 
@@ -51,7 +51,7 @@ class TestAddBatch:
     def test_add_batch_for_new_product():
         mb = message_bus.MessageBus(FakeUnitOfWork())
         sku = "CRUNCHY-ARMCHAIR"
-        mb.handle(events.BatchCreated("b1", sku, 100, None))
+        mb.handle(commands.CreateBatch("b1", sku, 100, None))
         assert mb.uow.products.get(sku) is not None
         assert mb.uow.commited is True
 

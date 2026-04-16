@@ -4,6 +4,7 @@ import allocation.service_layer.handlers
 from allocation.service_layer.unit_of_work import AbstractionUnitOfWork
 import logging
 
+logger = logging.getLogger(__name__)
 Message = Union[events.Event, commands.Command]
 
 class AbstractionMessageBus:
@@ -13,11 +14,11 @@ class AbstractionMessageBus:
         self.uow = uow
 
     def handle(self, message: Message):
-        results, queue = list(), [event]
+        results, queue = list(), [message]
         while queue:
             message = queue.pop(0)
             if isinstance(message, events.Event):
-                self.handle_event(event, queue, self.uow)
+                self.handle_event(message, queue, self.uow)
             elif isinstance(message, commands.Command):
                 cmd_result = self.handle_command(message, queue, uow=self.uow)
             else:
@@ -62,10 +63,10 @@ class MessageBus(AbstractionMessageBus):
         events.OutOfStock: [allocation.service_layer.handlers.send_out_of_stock_notification],
     }
     COMMAND_HANDLERS = {
-        commands.CreateBatch: [allocation.service_layer.handlers.add_batch],
-        commands.Allocate: [allocation.service_layer.handlers.allocate],
-        commands.Deallocate: [allocation.service_layer.handlers.deallocate],
-        commands.ChangeBatchQuantity: [allocation.service_layer.handlers.change_batch_quantity]
+        commands.CreateBatch: allocation.service_layer.handlers.add_batch,
+        commands.Allocate: allocation.service_layer.handlers.allocate,
+        commands.Deallocate: allocation.service_layer.handlers.deallocate,
+        commands.ChangeBatchQuantity: allocation.service_layer.handlers.change_batch_quantity
     }
 
 
