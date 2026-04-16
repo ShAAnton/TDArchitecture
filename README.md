@@ -4,8 +4,12 @@ https://github.com/python-leap/code/branches/all
 
 ## Implemented design patterns
 Repository -- an abstraction over the idea of persistent storage
+
 Unit of Work -- abstraction over the idea of atomic operations
+
 Aggregate -- enforces the integrity of the data
+
+Message Bus -- convert an application into messages processor with Events and Commands
 
 ## Using techniques
 Test-Driven development
