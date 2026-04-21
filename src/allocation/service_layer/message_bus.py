@@ -8,7 +8,9 @@ logger = logging.getLogger(__name__)
 Message = Union[events.Event, commands.Command]
 
 class AbstractionMessageBus:
-    HANDLERS: Dict[Type[events.Event], List[Callable]]
+    EVENT_HANDLERS: Dict[Type[events.Event], List[Callable]]
+    COMMAND_HANDLERS: Dict[Type[commands.Command], Callable]
+
 
     def __init__(self, uow: AbstractionUnitOfWork):
         self.uow = uow
@@ -61,6 +63,7 @@ class AbstractionMessageBus:
 
 class MessageBus(AbstractionMessageBus):
     EVENT_HANDLERS = {
+        events.Allocated: [allocation.service_layer.handlers.publish_allocated_event],
         events.OutOfStock: [allocation.service_layer.handlers.send_out_of_stock_notification],
     }
     COMMAND_HANDLERS = {
