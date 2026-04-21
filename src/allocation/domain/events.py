@@ -14,32 +14,8 @@ class NotAllocatedLine(Event):
     sku: str
 
 @dataclass
-class BatchCreated(Event):
+class Allocated(Event):
+    order_id: str
+    sku: str
+    quantity: int
     batch_ref: str
-    sku: str
-    quantity: int
-    eta: Optional[date] = None
-
-@dataclass
-class AllocationRequired(Event):
-    order_id: str
-    sku: str
-    quantity: int
-
-@dataclass
-class DeallocationRequired(Event):
-    order_id: str
-    sku: str
-    quantity: int
-
-
-@dataclass
-class AllocationRequest(Event):
-    order_id: str
-    sku: str
-    quantity: int
-
-@dataclass
-class BatchQuantityChanged(Event):
-    batch_ref: str
-    quantity: int

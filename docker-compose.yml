@@ -6,6 +6,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    image: allocation-image
     depends_on:
       - postgres
       - redis
@@ -34,7 +35,7 @@ services:
       - FLAK_DEBUG=1
       - PYTHONUNBUFFERED=1
     volumes:
-      - ./src:./src
+      - ./src:/src
     entrypoint:
       - flask
       - run
