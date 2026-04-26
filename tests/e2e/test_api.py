@@ -2,7 +2,7 @@ import pytest
 from ..random_refs import random_sku, random_batch_ref, random_order_id
 from . import api_client
 
-
+@pytest.mark.usefixtures("postgres_db")
 @pytest.mark.usefixtures('restart_api')
 def test_happy_path_returns_201_and_allocated_batch():
     sku, other_sku = random_sku(), random_sku('other')
@@ -17,7 +17,7 @@ def test_happy_path_returns_201_and_allocated_batch():
 
     assert response.json()['batch_ref'] == batch_2
 
-
+@pytest.mark.usefixtures("postgres_db")
 @pytest.mark.usefixtures('restart_api')
 def test_unhappy_path_returns_400_and_error_message():
     unknown_sku, order_id = random_sku(), random_order_id()

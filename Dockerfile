@@ -5,7 +5,6 @@ RUN pip install -r /tmp/requirements.txt
 
 RUN mkdir -p /src
 COPY src/ /src/
-COPY pyproject.toml /src
 RUN pip install -e /src
 
 WORKDIR /src

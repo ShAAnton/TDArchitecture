@@ -1,5 +1,6 @@
 import shutil
 import subprocess
+
 import pytest
 
 import requests
@@ -11,6 +12,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import clear_mappers
 from src.allocation.adapters import orm
 from src.allocation import config
+from src.allocation.entrypoints.event_channels import ChannelEventConsumerOnline, ChannelEventConsumerPing
 
 
 @pytest.fixture
@@ -63,10 +65,24 @@ def wait_for_webapp_to_come_up():
     return requests.get(url)
 
 
-@retry(stop=stop_after_delay(5))
+@retry(stop=stop_after_delay(10))
 def wait_for_redis_to_come_up():
     r = redis.Redis(**config.get_redis_host_and_port())
     return r.ping()
+
+
+def wait_for_redis_pubsub_to_come_up():
+    stop_after_attempt = 10
+    r = redis.Redis(**config.get_redis_host_and_port())
+    pubsub = r.pubsub(ignore_subscribe_messages=True)
+    pubsub.subscribe(ChannelEventConsumerOnline.channel_name)
+    for _ in range(stop_after_attempt):
+        r.publish(ChannelEventConsumerPing.channel_name, 'ping')
+        m = pubsub.get_message(timeout=1.0)
+        if m is not None:
+            return True
+    raise Exception
+
 
 @pytest.fixture
 def restart_api():
@@ -83,5 +99,6 @@ def restart_redis_pubsub():
         return
     subprocess.run(
         ["docker-compose", "restart", "-t", "0", "redis_pubsub"],
-        check=True
+        check=True,
     )
+    wait_for_redis_pubsub_to_come_up()
