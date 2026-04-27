@@ -38,10 +38,10 @@ def deallocate(command: commands.Deallocate, uow: AbstractionUnitOfWork):
 
 
 def change_batch_quantity(command: commands.ChangeBatchQuantity, uow: AbstractionUnitOfWork):
-    # looks like bag no with uow
-    product = uow.products.get_by_batch_ref(command.reference)
-    product.change_batch_quantity(batch_ref=command.reference, quantity=command.quantity)
-    uow.commit()
+    with uow:
+        product = uow.products.get_by_batch_ref(command.reference)
+        product.change_batch_quantity(batch_ref=command.reference, quantity=command.quantity)
+        uow.commit()
 
 
 def send_out_of_stock_notification(event: events.OutOfStock, uow: AbstractionUnitOfWork):

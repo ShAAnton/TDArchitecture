@@ -13,4 +13,4 @@ def subscribe_to(channel):
     return pubsub
 
 def publish_message(channel, message):
-    r.publish(channel, json.dumps(message))
+    r.publish(channel, message)

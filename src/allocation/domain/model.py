@@ -83,6 +83,14 @@ class Product:
             batch.allocate(line)
             self.version_number += 1
             allocated_batch_ref = batch.reference
+            self.events.append(
+                events.Allocated(
+                    order_id=line.order_id,
+                    sku=line.sku,
+                    quantity=line.quantity,
+                    batch_ref=allocated_batch_ref
+                )
+            )
         except StopIteration:
             self.events.append(events.OutOfStock(line.sku))
         return allocated_batch_ref

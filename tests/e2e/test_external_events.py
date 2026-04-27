@@ -3,7 +3,7 @@ import pytest
 from tenacity import Retrying, RetryError, stop_after_delay
 from . import api_client, redis_client
 from ..random_refs import *
-
+from allocation.entrypoints.event_channels import ChannelChangeBatchQuantity
 
 
 @pytest.mark.usefixtures("postgres_db")
@@ -19,11 +19,11 @@ def test_change_batch_quantity_leading_to_reallocation():
     assert response.json()["batch_ref"] == earlier_batch
 
     subscription = redis_client.subscribe_to("line_allocated")
-
     # change quantity on allocated batch so it's less than our order
+    change_batch_quantity_message = ChannelChangeBatchQuantity.format_as_chanel_message(earlier_batch, 5)
     redis_client.publish_message(
-        "change_batch_quantity",
-        {"batch_ref": earlier_batch, "quantity": 5}
+        ChannelChangeBatchQuantity.channel_name,
+        change_batch_quantity_message
     )
 
     # wait until we see a message saying the order has bee reallocated

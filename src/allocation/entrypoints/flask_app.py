@@ -9,8 +9,8 @@ from allocation.service_layer import unit_of_work, message_bus
 
 import datetime
 
-orm.start_mappers()
 app = Flask(__name__)
+orm.start_mappers()
 
 @app.route("/add_batch", methods=['POST'])
 def add_batch():
