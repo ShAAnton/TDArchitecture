@@ -23,15 +23,16 @@ def in_memory_db():
 
 
 @pytest.fixture
-def session_factory(in_memory_db):
+def sqlite_session_factory(in_memory_db):
     orm.start_mappers()
     yield orm.sessionmaker(bind=in_memory_db)
     clear_mappers()
 
 
 @pytest.fixture
-def session(session_factory):
-    return session_factory()
+def sqlite_session(sqlite_session_factory):
+    return sqlite_session_factory()
+
 
 @pytest.fixture(scope="session")
 def postgres_db():
@@ -47,12 +48,6 @@ def postgres_session_factory(postgres_db):
     yield orm.sessionmaker(bind=postgres_db)
     clear_mappers()
 
-
-@pytest.fixture
-def postgres_session(postgres_db):
-    orm.start_mappers()
-    yield orm.sessionmaker(bind=postgres_db)()
-    clear_mappers()
 
 @retry(stop=stop_after_delay(5))
 def wait_for_postgres_to_come_up(engine):
