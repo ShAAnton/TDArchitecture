@@ -63,7 +63,10 @@ class AbstractionMessageBus:
 
 class MessageBus(AbstractionMessageBus):
     EVENT_HANDLERS = {
-        events.Allocated: [allocation.service_layer.handlers.publish_allocated_event],
+        events.Allocated: [
+            allocation.service_layer.handlers.publish_allocated_event,
+            allocation.service_layer.handlers.add_allocation_to_read_model,
+        ],
         events.OutOfStock: [allocation.service_layer.handlers.send_out_of_stock_notification],
     }
     COMMAND_HANDLERS = {

@@ -1,6 +1,6 @@
 from allocation.domain import model, events, exceptions, commands
 from allocation.adapters import email, redis_eventpublisher
-from allocation.service_layer.unit_of_work import AbstractionUnitOfWork
+from allocation.service_layer.unit_of_work import AbstractionUnitOfWork, SqlAlchemyUnitOfWork
 
 
 def add_batch(command: commands.CreateBatch, uow: AbstractionUnitOfWork):
@@ -56,3 +56,15 @@ def publish_allocated_event(
     uow: AbstractionUnitOfWork,
 ):
     redis_eventpublisher.publish("line_allocated", event)
+
+def add_allocation_to_read_model(
+        event: events.Allocated,
+        uow: SqlAlchemyUnitOfWork
+):
+    with uow:
+        uow.session.execute(
+            'INSERT INTO allocations_view (order_id, sku, batch_ref)'
+            ' VALUES (:order_id, :sku, :batch_ref)',
+            dict(order_id=event.order_id, sku=event.sku, batch_ref=event.batch_ref)
+        )
+        uow.commit()

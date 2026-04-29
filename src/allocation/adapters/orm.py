@@ -55,6 +55,13 @@ allocations = Table(
     Column("order_line_id", ForeignKey("order_lines.id"))
 )
 
+allocations_view = Table(
+    'allocations_view', metadata,
+    Column('order_id', String(255)),
+    Column('sku', String(255)),
+    Column('batch_ref', String(255)),
+)
+
 def start_mappers():
     mapper_registry = orm.registry()
     lines_mapper = mapper_registry.map_imperatively(model.OrderLine, order_lines)
