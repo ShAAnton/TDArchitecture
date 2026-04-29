@@ -11,8 +11,11 @@ Aggregate -- enforces the integrity of the data
 
 Message Bus -- convert an application into messages processor with Events and Commands
 
+Command-Query Responsibility Segregation (CQRS) -- separating reads and writes in an Event-Driven Architecture
+
 ## Using techniques
 Test-Driven development
+
 Domain-Driven design
 
 ## Layered architecture
