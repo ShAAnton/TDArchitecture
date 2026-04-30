@@ -1,6 +1,6 @@
 from typing import Dict, Type, List, Callable, Union
 from allocation.domain import events, commands
-import allocation.service_layer.handlers
+import allocation.service_layer.handlers as handlers
 from allocation.service_layer.unit_of_work import AbstractionUnitOfWork
 import logging
 
@@ -64,16 +64,22 @@ class AbstractionMessageBus:
 class MessageBus(AbstractionMessageBus):
     EVENT_HANDLERS = {
         events.Allocated: [
-            allocation.service_layer.handlers.publish_allocated_event,
-            allocation.service_layer.handlers.add_allocation_to_read_model,
+            handlers.publish_allocated_event,
+            handlers.add_allocation_to_read_model,
         ],
-        events.OutOfStock: [allocation.service_layer.handlers.send_out_of_stock_notification],
+        events.Deallocated: [
+            handlers.reallocate,
+            handlers.remove_allocation_from_read_model
+        ],
+        events.OutOfStock: [
+            handlers.send_out_of_stock_notification
+        ],
     }
     COMMAND_HANDLERS = {
-        commands.CreateBatch: allocation.service_layer.handlers.add_batch,
-        commands.Allocate: allocation.service_layer.handlers.allocate,
-        commands.Deallocate: allocation.service_layer.handlers.deallocate,
-        commands.ChangeBatchQuantity: allocation.service_layer.handlers.change_batch_quantity
+        commands.CreateBatch: handlers.add_batch,
+        commands.Allocate: handlers.allocate,
+        commands.Deallocate: handlers.deallocate,
+        commands.ChangeBatchQuantity: handlers.change_batch_quantity
     }
 
 

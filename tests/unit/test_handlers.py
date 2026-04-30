@@ -71,12 +71,13 @@ class TestAddBatch:
 class TestAllocate:
 
     @staticmethod
-    def test_allocate_returns_allocation():
+    def test_allocates():
         sku = "COMPLICATED-LAMP"
         mb = message_bus.MessageBus(FakeUnitOfWork())
         mb.handle(commands.CreateBatch("b1", sku, 100, None))
-        result = mb.handle(commands.Allocate("o1", sku, 10))
-        assert result.pop() == "b1"
+        mb.handle(commands.Allocate("o1", sku, 10))
+        [batch] = mb.uow.products.get(sku).batches
+        assert batch.available_quantity == 90
 
     @staticmethod
     def test_allocate_error_for_invalid_sku():
