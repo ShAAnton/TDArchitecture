@@ -15,7 +15,7 @@ from src.allocation import config
 from src.allocation.entrypoints.event_channels import ChannelEventConsumerOnline, ChannelEventConsumerPing
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def in_memory_db():
     engine = create_engine("sqlite:///:memory:")
     orm.metadata.create_all(engine)
@@ -86,7 +86,7 @@ def restart_api():
     wait_for_webapp_to_come_up()
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def restart_redis_pubsub():
     wait_for_redis_to_come_up()
     if not shutil.which("docker-compose"):
