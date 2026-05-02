@@ -13,6 +13,8 @@ Message Bus -- convert an application into messages processor with Events and Co
 
 Command-Query Responsibility Segregation (CQRS) -- separating reads and writes in an Event-Driven Architecture
 
+Composition root -- is a single, centralized location where all components are wired and their dependencies are resolved
+
 ## Using techniques
 Test-Driven development
 
