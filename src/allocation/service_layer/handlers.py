@@ -91,3 +91,24 @@ def remove_allocation_from_read_model(
             dict(order_id=event.order_id, sku=event.sku),
         )
         uow.commit()
+
+
+EVENT_HANDLERS = {
+    events.Allocated: [
+        publish_allocated_event,
+        add_allocation_to_read_model,
+    ],
+    events.Deallocated: [
+        reallocate,
+        remove_allocation_from_read_model
+    ],
+    events.OutOfStock: [
+        send_out_of_stock_notification
+    ],
+}
+COMMAND_HANDLERS = {
+    commands.CreateBatch: add_batch,
+    commands.Allocate: allocate,
+    commands.Deallocate: deallocate,
+    commands.ChangeBatchQuantity: change_batch_quantity
+}
