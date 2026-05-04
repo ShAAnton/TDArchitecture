@@ -34,7 +34,7 @@ def deallocate_endpoint():
             quantity=request.json['quantity']
         )
         uow = unit_of_work.SqlAlchemyUnitOfWork()
-        message_bus.MessageBus(uow).handle(cmd).pop(0)
+        message_bus.MessageBus(uow).handle(cmd)
     except (exceptions.NotAllocatedLine, exceptions.InvalidSku) as e:
         return jsonify({'message': str(e)}), 400
 

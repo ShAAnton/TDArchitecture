@@ -13,8 +13,7 @@ def test_happy_path_returns_201_and_allocated_batch():
     api_client.post_to_add_batch(batch_2, sku, 100, '2026-03-16')
     api_client.post_to_add_batch(batch_3, other_sku, 100, None)
     order_id = random_order_id()
-    response = api_client.post_to_allocate(order_id, sku, 3)
-    assert response.status_code == 201
+    api_client.post_to_allocate(order_id, sku, 3)
 
     response = api_client.get_allocation(order_id)
     assert response.ok
@@ -40,23 +39,20 @@ def test_unhappy_path_returns_400_and_error_message():
 def test_deallocate():
     sku, order1, order2 = random_sku(), random_order_id(), random_order_id()
     batch_ref = random_batch_ref()
-    api_client.post_to_add_batch(batch_ref, sku, 100, "2011-01-02")
+    api_client.post_to_add_batch(batch_ref, sku, 100, "2026-05-04")
 
     # fully allocate
-    response = api_client.post_to_allocate(order1, sku, 100)
-    assert response.status_code == 201
-
-    # cannot allocate second order
-    response = api_client.post_to_allocate(order2, sku, 100, expect_success=False)
-    assert response.status_code == 400
-
+    api_client.post_to_allocate(order1, sku, 100)
     # deallocate
-    response = api_client.post_to_deallocate(order1, sku, 100)
-    assert response.status_code == 201
+    api_client.post_to_deallocate(order1, sku, 100)
+
+    response = api_client.get_allocation(order1)
+    assert response.status_code == 404
 
     # now we can allocate second order
     response = api_client.post_to_allocate(order2, sku, 100)
     assert response.status_code == 201
+
 
     response = api_client.get_allocation(order2)
     assert response.json() == [

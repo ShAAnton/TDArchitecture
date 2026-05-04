@@ -29,3 +29,9 @@ class Deallocate(Command):
     order_id: str
     sku: str
     quantity: int
+
+@dataclass
+class Reallocate(Command):
+    order_id: str
+    sku: str
+    quantity: int

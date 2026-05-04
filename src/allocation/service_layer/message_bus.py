@@ -19,6 +19,7 @@ class AbstractionMessageBus:
         queue = [message]
         while queue:
             message = queue.pop(0)
+
             if isinstance(message, events.Event):
                 self.handle_event(message, queue, self.uow)
             elif isinstance(message, commands.Command):
@@ -65,7 +66,7 @@ class MessageBus(AbstractionMessageBus):
             handlers.add_allocation_to_read_model,
         ],
         events.Deallocated: [
-            handlers.reallocate,
+            # handlers.reallocate,
             handlers.remove_allocation_from_read_model
         ],
         events.OutOfStock: [
@@ -76,7 +77,8 @@ class MessageBus(AbstractionMessageBus):
         commands.CreateBatch: handlers.add_batch,
         commands.Allocate: handlers.allocate,
         commands.Deallocate: handlers.deallocate,
-        commands.ChangeBatchQuantity: handlers.change_batch_quantity
+        commands.Reallocate: handlers.reallocate,
+        commands.ChangeBatchQuantity: handlers.change_batch_quantity,
     }
 
 

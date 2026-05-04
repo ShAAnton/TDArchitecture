@@ -104,6 +104,13 @@ class Product:
             batch.deallocate(line)
             self.version_number += 1
             allocated_batch_ref = batch.reference
+            self.events.append(
+                events.Deallocated(
+                    order_id=line.order_id,
+                    sku=line.sku,
+                    quantity=line.quantity
+                )
+            )
         except StopIteration:
             self.events.append(events.NotAllocatedLine(line.sku))
         return allocated_batch_ref
@@ -117,4 +124,7 @@ class Product:
             line = batch.deallocate_one()
             self.events.append(
                 events.Deallocated(line.order_id, line.sku, line.quantity)
+            )
+            self.events.append(
+                commands.Reallocate(line.order_id, line.sku, line.quantity)
             )

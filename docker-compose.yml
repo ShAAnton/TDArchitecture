@@ -30,7 +30,7 @@ services:
       - REDIS_HOST=redis
       - PYTHONDONTWRITEBYTECODE=1
       - FLASK_APP=allocation/entrypoints/flask_app.py
-      - FLAK_DEBUG=1
+      - FLASK_DEBUG=1
       - PYTHONUNBUFFERED=1
     volumes:
       - ./src:/src
