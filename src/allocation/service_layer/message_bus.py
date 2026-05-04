@@ -16,17 +16,15 @@ class AbstractionMessageBus:
         self.uow = uow
 
     def handle(self, message: Message):
-        results, queue = list(), [message]
+        queue = [message]
         while queue:
             message = queue.pop(0)
             if isinstance(message, events.Event):
                 self.handle_event(message, queue, self.uow)
             elif isinstance(message, commands.Command):
-                cmd_result = self.handle_command(message, queue, uow=self.uow)
-                results.append(cmd_result)
+                self.handle_command(message, queue, uow=self.uow)
             else:
                 raise TypeError(f'{message} was not an Event or Command')
-        return results
 
     def handle_event(
                 self,
@@ -53,9 +51,8 @@ class AbstractionMessageBus:
         logger.debug('handling command %s', command)
         try:
             handler = self.COMMAND_HANDLERS[type(command)]
-            result = handler(command, uow=uow)
+            handler(command, uow=uow)
             queue.extend(uow.collect_new_events())
-            return result
         except Exception:
             logger.exception('Exception handling command %s', command)
             raise

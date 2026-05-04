@@ -45,3 +45,7 @@ def post_to_deallocate(order_id, sku, quantity, expect_success=True):
     if expect_success:
         assert r.status_code == 201
     return r
+
+def get_allocation(order_id):
+    url = config.get_api_url()
+    return requests.get(f"{url}/allocations/{order_id}")

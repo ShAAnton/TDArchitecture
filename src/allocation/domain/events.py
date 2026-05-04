@@ -24,3 +24,4 @@ class Allocated(Event):
 class Deallocated(Event):
     order_id: str
     sku: str
+    quantity: int

@@ -1,10 +1,8 @@
 from flask import Flask, jsonify, request
-from sqlalchemy import create_engine
 
-from allocation import config
-from allocation.domain import events, commands, exceptions
-from allocation.adapters import orm, repository
-# from allocation.service_layer import handlers
+from allocation.domain import commands, exceptions
+from allocation.adapters import orm
+from allocation import views
 from allocation.service_layer import unit_of_work, message_bus
 
 import datetime
@@ -28,7 +26,7 @@ def add_batch():
     return 'OK', 201
 
 @app.route("/deallocate", methods=['POST'])
-def deallocate():
+def deallocate_endpoint():
     try:
         cmd = commands.Deallocate(
             order_id=request.json['order_id'],
@@ -36,15 +34,15 @@ def deallocate():
             quantity=request.json['quantity']
         )
         uow = unit_of_work.SqlAlchemyUnitOfWork()
-        batch_ref = message_bus.MessageBus(uow).handle(cmd).pop(0)
+        message_bus.MessageBus(uow).handle(cmd).pop(0)
     except (exceptions.NotAllocatedLine, exceptions.InvalidSku) as e:
         return jsonify({'message': str(e)}), 400
 
-    return jsonify({'batch_ref': batch_ref}), 201
+    return 'OK', 201
 
 
 @app.route("/allocate", methods=['POST'])
-def allocate():
+def allocate_endpoint():
     try:
         cmd = commands.Allocate(
             order_id=request.json['order_id'],
@@ -52,15 +50,18 @@ def allocate():
             quantity=request.json['quantity']
         )
         uow = unit_of_work.SqlAlchemyUnitOfWork()
-        batch_ref = message_bus.MessageBus(uow).handle(cmd).pop(0)
-
-        if batch_ref is None:
-            return jsonify({'message': f"Fail to allocate order {request.json['order_id']}"}), 400
+        message_bus.MessageBus(uow).handle(cmd)
     except exceptions.InvalidSku as e:
         return jsonify({'message': str(e)}), 400
 
-    return jsonify({'batch_ref': batch_ref}), 201
+    return "OK", 201
 
 
-def is_valid_sku(sku, batches):
-    return sku in {b.sku for b in batches}
+@app.route("/allocations/<order_id>", methods=["GET"])
+def allocations_view_endpoint(order_id):
+    uow = unit_of_work.SqlAlchemyUnitOfWork()
+    result = views.allocations(order_id, uow)
+    if not result:
+        return "not found", 404
+    return jsonify(result), 200
+
