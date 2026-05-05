@@ -28,13 +28,6 @@ def sqlite_session_factory(in_memory_sqlite_db):
 
 
 @pytest.fixture
-def mappers():
-    orm.start_mappers()
-    yield
-    orm.clear_mappers()
-
-
-@pytest.fixture
 def sqlite_session(sqlite_session_factory):
     return sqlite_session_factory()
 
@@ -50,6 +43,18 @@ def postgres_db():
 @pytest.fixture
 def postgres_session_factory(postgres_db):
     yield orm.sessionmaker(bind=postgres_db)
+
+
+@pytest.fixture
+def postgres_session(postgres_session_factory):
+    return postgres_session_factory()
+
+
+@pytest.fixture
+def mappers():
+    orm.start_mappers()
+    yield
+    orm.clear_mappers()
 
 
 @retry(stop=stop_after_delay(5))

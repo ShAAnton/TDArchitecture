@@ -1,8 +1,6 @@
 from allocation.adapters import repository
 from allocation.service_layer import unit_of_work
-from allocation.service_layer import message_bus
-from allocation.domain import events, commands
-from allocation.domain import exceptions
+from allocation.domain import events, commands, exceptions
 from allocation import bootstrap
 
 import pytest

@@ -1,9 +1,9 @@
-import allocation.service_layer.unit_of_work as unit_of_work
 import pytest
 import allocation.domain.model as model
 from allocation.service_layer.unit_of_work import SqlAlchemyUnitOfWork
-
 from ..random_refs import random_sku, random_batch_ref, random_order_id
+
+pytestmark = pytest.mark.usefixtures("mappers")
 
 
 def insert_batch(session, reference, sku, quantity, eta, product_version=1):
@@ -45,6 +45,7 @@ def get_allocated_batch_ref(session, order_id, sku):
 def test_uow_can_retrieve_a_batch_and_allocate_to_it(sqlite_session_factory):
     sku = 'HIPSTER-WORKBENCH'
     session = sqlite_session_factory()
+
     insert_batch(session, 'batch1', sku, 100, None)
     session.commit()
 
@@ -129,5 +130,5 @@ def test_concurrent_updates_to_version_are_not_allowed(postgres_session_factory)
         dict(sku=sku)
     )
     assert orders.rowcount == 1
-    with SqlAlchemyUnitOfWork() as uow:
+    with SqlAlchemyUnitOfWork(postgres_session_factory) as uow:
         uow.session.execute("select 1")
