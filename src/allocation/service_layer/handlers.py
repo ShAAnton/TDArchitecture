@@ -99,7 +99,7 @@ EVENT_HANDLERS = {
         add_allocation_to_read_model,
     ],
     events.Deallocated: [
-        reallocate,
+        # reallocate,
         remove_allocation_from_read_model
     ],
     events.OutOfStock: [
@@ -110,5 +110,6 @@ COMMAND_HANDLERS = {
     commands.CreateBatch: add_batch,
     commands.Allocate: allocate,
     commands.Deallocate: deallocate,
+    commands.Reallocate: reallocate,
     commands.ChangeBatchQuantity: change_batch_quantity
 }

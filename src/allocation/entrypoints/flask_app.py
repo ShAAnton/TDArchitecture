@@ -2,7 +2,6 @@ from flask import Flask, jsonify, request
 
 from allocation import bootstrap
 from allocation.domain import commands, exceptions
-from allocation.adapters import orm
 from allocation import views
 from allocation.service_layer import unit_of_work, message_bus
 
@@ -58,8 +57,7 @@ def allocate_endpoint():
 
 @app.route("/allocations/<order_id>", methods=["GET"])
 def allocations_view_endpoint(order_id):
-    uow = unit_of_work.SqlAlchemyUnitOfWork()
-    result = views.allocations(order_id, uow)
+    result = views.allocations(order_id, mbus.uow)
     if not result:
         return "not found", 404
     return jsonify(result), 200

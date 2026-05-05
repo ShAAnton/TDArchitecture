@@ -46,7 +46,3 @@ class MessageBus:
         except Exception:
             logger.exception('Exception handling command %s', command)
             raise
-
-
-
-

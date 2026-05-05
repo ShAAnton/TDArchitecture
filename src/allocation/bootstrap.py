@@ -5,13 +5,13 @@ from allocation.adapters import email, redis_eventpublisher, orm
 from allocation.service_layer import handlers
 
 def bootstrap(
-        strat_orm: bool = True,
+        start_orm: bool = True,
         uow: unit_of_work.AbstractionUnitOfWork = unit_of_work.SqlAlchemyUnitOfWork(),
         send_mail: Callable = email.send_email,
         publish: Callable = redis_eventpublisher.publish,
 )-> message_bus.MessageBus:
 
-    if strat_orm:
+    if start_orm:
         orm.start_mappers()
 
     dependencies = {'uow': uow, 'send_mail': send_mail, 'publish': publish}

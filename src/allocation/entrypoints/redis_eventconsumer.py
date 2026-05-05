@@ -2,21 +2,17 @@ import json
 import logging
 import redis
 
-from allocation import config
+from allocation import config, bootstrap
 from allocation.domain import commands
-from allocation.adapters import orm
-from allocation.service_layer import message_bus, unit_of_work
 from allocation.entrypoints.event_channels import (ChannelEventConsumerOnline,
                                                    ChannelChangeBatchQuantity,
                                                    ChannelEventConsumerPing)
 
 logger = logging.getLogger(__name__)
-uow = unit_of_work.SqlAlchemyUnitOfWork()
-ms = message_bus.MessageBus(uow)
+ms = bootstrap.bootstrap()
 r = redis.Redis(**config.get_redis_host_and_port())
 
 def main():
-    orm.start_mappers()
     pubsub = r.pubsub(ignore_subscribe_messages=True)
     pubsub.subscribe(
         (
