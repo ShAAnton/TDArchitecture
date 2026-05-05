@@ -1,10 +1,9 @@
 from allocation.adapters import repository
-from allocation.service_layer import handlers
 from allocation.service_layer import unit_of_work
 from allocation.service_layer import message_bus
 from allocation.domain import events, commands
 from allocation.domain import exceptions
-import allocation
+from allocation import bootstrap
 
 import pytest
 from typing import Iterable
@@ -12,11 +11,11 @@ from unittest import mock
 from datetime import date
 
 
+
 class FakeRepository(repository.AbstractRepository):
     def __init__(self, products: Iterable | None = None):
         self._product = set(products) if products else set()
         super().__init__()
-
     def _add(self, product):
         self._product.add(product)
 
@@ -38,7 +37,6 @@ class FakeUnitOfWork(unit_of_work.AbstractionUnitOfWork):
     def __init__(self):
         self.products = FakeRepository()
         self.commited = False
-
     def _commit(self):
         self.commited = True
 
@@ -46,10 +44,19 @@ class FakeUnitOfWork(unit_of_work.AbstractionUnitOfWork):
         pass
 
 
+def bootstrap_test_app():
+    return bootstrap.bootstrap(
+        start_orm=False,
+        uow=FakeUnitOfWork(),
+        send_mail=lambda *args: None,
+        publish=lambda *args: None,
+    )
+
+
 class TestAddBatch:
     @staticmethod
     def test_add_batch_for_new_product():
-        mb = message_bus.MessageBus(FakeUnitOfWork())
+        mb = bootstrap_test_app()
         sku = "CRUNCHY-ARMCHAIR"
         mb.handle(commands.CreateBatch("b1", sku, 100, None))
         assert mb.uow.products.get(sku) is not None
@@ -57,7 +64,7 @@ class TestAddBatch:
 
     @staticmethod
     def test_add_batch_for_existing_product():
-        mb = message_bus.MessageBus(FakeUnitOfWork())
+        mb = bootstrap_test_app()
         sku = "GARISH-RUG"
         messages_history = [
             commands.CreateBatch("b1", sku, 100, None),
@@ -73,7 +80,7 @@ class TestAllocate:
     @staticmethod
     def test_allocates():
         sku = "COMPLICATED-LAMP"
-        mb = message_bus.MessageBus(FakeUnitOfWork())
+        mb = bootstrap_test_app()
         mb.handle(commands.CreateBatch("b1", sku, 100, None))
         mb.handle(commands.Allocate("o1", sku, 10))
         [batch] = mb.uow.products.get(sku).batches
@@ -82,7 +89,7 @@ class TestAllocate:
     @staticmethod
     def test_allocate_error_for_invalid_sku():
         sku, invalid_sku = "AREALSKU", "NONEXISTENTSKU"
-        mb = message_bus.MessageBus(FakeUnitOfWork())
+        mb = bootstrap_test_app()
         mb.handle(commands.CreateBatch("b1", sku, 100, None))
         with pytest.raises(exceptions.InvalidSku, match=f"Invalid sku {invalid_sku}"):
             mb.handle(commands.Allocate("o1", invalid_sku, 10))
@@ -90,14 +97,14 @@ class TestAllocate:
     @staticmethod
     def test_allocate_commits():
         sku = "OMINOUS-MIRROR"
-        mb = message_bus.MessageBus(FakeUnitOfWork())
+        mb = bootstrap_test_app()
         mb.handle(commands.CreateBatch("b1", sku, 100, None))
         mb.handle(commands.Allocate("o1", sku, 10))
         assert mb.uow.commited is True
 
     @staticmethod
     def test_sends_email_on_out_of_stock_error():
-        mb = message_bus.MessageBus(FakeUnitOfWork())
+        mb = bootstrap_test_app()
         sku = "POPULAR-CURTAINS"
         mb.handle(commands.CreateBatch("b1", sku, 9, None))
 
@@ -111,7 +118,7 @@ class TestAllocate:
     @staticmethod
     def test_trying_to_deallocate_unallocated_batch():
         sku = "SOLONG_BATCH"
-        mb = message_bus.MessageBus(FakeUnitOfWork())
+        mb = bootstrap_test_app()
         mb.handle(commands.CreateBatch("b1", sku, 100, eta=None))
         not_allocated_line = ("o1", sku, 10)
         with pytest.raises(exceptions.NotAllocatedLine, match=f"Can not deallocate not allocated line {sku}"):
@@ -123,7 +130,7 @@ class TestChangeBatchQuantity:
     @staticmethod
     def test_changes_available_quantity():
         sku = "ADORABLE-SETTEE"
-        mb = message_bus.MessageBus(FakeUnitOfWork())
+        mb = bootstrap_test_app()
         mb.handle(commands.CreateBatch("batch1", sku, 100, None))
         [batch] = mb.uow.products.get(sku=sku).batches
         assert batch.available_quantity == 100
@@ -134,7 +141,7 @@ class TestChangeBatchQuantity:
 
     @staticmethod
     def test_reallocate_if_necessary():
-        mb = message_bus.MessageBus(FakeUnitOfWork())
+        mb = bootstrap_test_app()
         sku = "INDIFFERENT-TABLE"
         event_history = [
             commands.CreateBatch("batch1", sku, 50, None),
@@ -158,7 +165,7 @@ class TestChangeBatchQuantity:
     @staticmethod
     def test_deallocate_decrements_available_quantity():
         sku = "BLUE-PLINTH"
-        mb = message_bus.MessageBus(FakeUnitOfWork())
+        mb = bootstrap_test_app()
         event_history = [
             commands.CreateBatch("b1", sku, 100, None),
             commands.Allocate("o1", sku, 10),
@@ -172,7 +179,7 @@ class TestChangeBatchQuantity:
     @staticmethod
     def test_deallocate_decrements_correct_quantity():
         sku = "GOODBATCH"
-        mb = message_bus.MessageBus(FakeUnitOfWork())
+        mb = bootstrap_test_app()
         mb.handle(commands.CreateBatch("b1", sku, quantity=100, eta=None))
         mb.handle(commands.Allocate("o1", sku, 10))
         wrong_quantity_line = ("o1", sku, 5)
