@@ -68,14 +68,14 @@ def wait_for_webapp_to_come_up():
     return requests.get(url)
 
 
-@retry(stop=stop_after_delay(10))
+@retry(stop=stop_after_delay(5))
 def wait_for_redis_to_come_up():
     r = redis.Redis(**config.get_redis_host_and_port())
     return r.ping()
 
 
 def wait_for_redis_pubsub_to_come_up():
-    stop_after_attempt = 10
+    stop_after_attempt = 5
     r = redis.Redis(**config.get_redis_host_and_port())
     pubsub = r.pubsub(ignore_subscribe_messages=True)
     pubsub.subscribe(ChannelEventConsumerOnline.channel_name)

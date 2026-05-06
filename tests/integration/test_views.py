@@ -14,7 +14,7 @@ def sqlite_bus(sqlite_session_factory):
     mbus = bootstrap.bootstrap(
         start_orm=True,
         uow=unit_of_work.SqlAlchemyUnitOfWork(sqlite_session_factory),
-        send_mail=lambda *args: None,
+        notifications=lambda *args: None,
         publish=lambda *args: None,
     )
     yield mbus

@@ -1,10 +1,11 @@
-from allocation.adapters import repository
+from allocation.adapters import repository, notifications
 from allocation.service_layer import unit_of_work
 from allocation.domain import events, commands, exceptions
 from allocation import bootstrap
 
 import pytest
 from typing import Iterable
+from collections import defaultdict
 from unittest import mock
 from datetime import date
 
@@ -41,12 +42,20 @@ class FakeUnitOfWork(unit_of_work.AbstractionUnitOfWork):
     def rollback(self):
         pass
 
+class FakeNotifications(notifications.Notification):
+
+    def __init__(self):
+        self.sent = defaultdict(list)
+
+    def send(self, destination, message):
+        self.sent[destination].append(message)
+
 
 def bootstrap_test_app():
     return bootstrap.bootstrap(
         start_orm=False,
         uow=FakeUnitOfWork(),
-        send_mail=lambda *args: None,
+        notifications_=FakeNotifications(),
         publish=lambda *args: None,
     )
 
@@ -102,16 +111,20 @@ class TestAllocate:
 
     @staticmethod
     def test_sends_email_on_out_of_stock_error():
-        mb = bootstrap_test_app()
+        fake_notifs = FakeNotifications()
+        mbus = bootstrap.bootstrap(
+            start_orm=False,
+            uow=FakeUnitOfWork(),
+            notifications_=fake_notifs,
+            publish=lambda *args: None,
+        )
         sku = "POPULAR-CURTAINS"
-        mb.handle(commands.CreateBatch("b1", sku, 9, None))
+        mbus.handle(commands.CreateBatch("b1", sku, 9, None))
+        mbus.handle(commands.Allocate("o1", sku, 10))
+        assert fake_notifs.sent['stock@made.com'] == [
+            f"Out of stock for {sku}",
+        ]
 
-        with mock.patch("allocation.adapters.email.send_email") as mock_send_email:
-            mb.handle(commands.Allocate("o1", sku, 10))
-            assert mock_send_email.call_args == mock.call(
-                "stock@made.com",
-                f"Out of stock for {sku}"
-            )
 
     @staticmethod
     def test_trying_to_deallocate_unallocated_batch():

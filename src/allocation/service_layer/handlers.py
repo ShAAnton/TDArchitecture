@@ -1,5 +1,5 @@
 from allocation.domain import model, events, exceptions, commands
-from allocation.adapters import email, redis_eventpublisher
+from allocation.adapters import notifications, redis_eventpublisher
 from allocation.service_layer.unit_of_work import AbstractionUnitOfWork, SqlAlchemyUnitOfWork
 from dataclasses import asdict
 import abc
@@ -65,16 +65,15 @@ class ChangeBatchQuantityHandler(CommandHandler):
             self.uow.commit()
 
 
-def send_out_of_stock_notification(event: events.OutOfStock, uow: AbstractionUnitOfWork):
-    email.send_email(
+def send_out_of_stock_notification(event: events.OutOfStock, notifications: notifications.Notification):
+    notifications.send(
         'stock@made.com',
         f'Out of stock for {event.sku}'
     )
 
 
 def publish_allocated_event(
-    event: events.Allocated,
-    uow: AbstractionUnitOfWork,
+    event: events.Allocated
 ):
     redis_eventpublisher.publish("line_allocated", event)
 
@@ -120,7 +119,6 @@ EVENT_HANDLERS = {
         add_allocation_to_read_model,
     ],
     events.Deallocated: [
-        # reallocate,
         remove_allocation_from_read_model
     ],
     events.OutOfStock: [
