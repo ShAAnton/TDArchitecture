@@ -2,34 +2,33 @@ from allocation.domain import model, events, exceptions, commands
 from allocation.adapters import email, redis_eventpublisher
 from allocation.service_layer.unit_of_work import AbstractionUnitOfWork, SqlAlchemyUnitOfWork
 from dataclasses import asdict
+import abc
 
 
-def add_batch(command: commands.CreateBatch, uow: AbstractionUnitOfWork):
-    with uow:
-        product = uow.products.get(command.sku)
-        if product is None:
-            product = model.Product(command.sku, [])
-            uow.products.add(product)
-        batch = model.Batch(command.reference, command.sku, command.quantity, command.eta)
-        product.batches.append(batch)
-        uow.commit()
-
-
-def allocate(command: commands.Allocate, uow: AbstractionUnitOfWork) -> str:
-    with uow:
-        products = uow.products.get(command.sku)
-        if products is None:
-            raise exceptions.InvalidSku(f'Invalid sku {command.sku}')
-        order_line = model.OrderLine(command.order_id, command.sku, command.quantity)
-        batch_ref = products.allocate(order_line)
-        uow.commit()
-        return batch_ref
-
-
-class AllocateHandler:
+class CommandHandler(abc.ABC):
 
     def __init__(self, uow: AbstractionUnitOfWork):
         self.uow = uow
+
+    @abc.abstractmethod
+    def __call__(self, *args, **kwargs):
+        raise NotImplementedError
+
+
+class AddBatchHandler(CommandHandler):
+
+    def __call__(self, command: commands.CreateBatch):
+        with self.uow:
+            product = self.uow.products.get(command.sku)
+            if product is None:
+                product = model.Product(command.sku, [])
+                self.uow.products.add(product)
+            batch = model.Batch(command.reference, command.sku, command.quantity, command.eta)
+            product.batches.append(batch)
+            self.uow.commit()
+
+
+class AllocateHandler(CommandHandler):
 
     def __call__(self, command: commands.Allocate):
         with self.uow:
@@ -43,24 +42,27 @@ class AllocateHandler:
             return batch_ref
 
 
-def deallocate(command: commands.Deallocate, uow: AbstractionUnitOfWork):
-    with uow:
-        product = uow.products.get(command.sku)
-        if product is None:
-            raise exceptions.InvalidSku(f'Invalid sku {command.sku}')
-        order_line = model.OrderLine(command.order_id, command.sku, command.quantity)
-        batch_ref = product.deallocate(order_line)
-        if batch_ref is None:
-            raise exceptions.NotAllocatedLine(f"Can not deallocate not allocated line {command.sku}")
-        uow.commit()
-        return batch_ref
+class DeallocateHandler(CommandHandler):
 
+    def __call__(self, command: commands.Deallocate):
+        with self.uow:
+            product = self.uow.products.get(command.sku)
+            if product is None:
+                raise exceptions.InvalidSku(f'Invalid sku {command.sku}')
+            order_line = model.OrderLine(command.order_id, command.sku, command.quantity)
+            batch_ref = product.deallocate(order_line)
+            if batch_ref is None:
+                raise exceptions.NotAllocatedLine(f"Can not deallocate not allocated line {command.sku}")
+            self.uow.commit()
+            return batch_ref
 
-def change_batch_quantity(command: commands.ChangeBatchQuantity, uow: AbstractionUnitOfWork):
-    with uow:
-        product = uow.products.get_by_batch_ref(command.reference)
-        product.change_batch_quantity(batch_ref=command.reference, quantity=command.quantity)
-        uow.commit()
+class ChangeBatchQuantityHandler(CommandHandler):
+
+    def __call__(self, command: commands.ChangeBatchQuantity):
+        with self.uow:
+            product = self.uow.products.get_by_batch_ref(command.reference)
+            product.change_batch_quantity(batch_ref=command.reference, quantity=command.quantity)
+            self.uow.commit()
 
 
 def send_out_of_stock_notification(event: events.OutOfStock, uow: AbstractionUnitOfWork):
@@ -89,14 +91,15 @@ def add_allocation_to_read_model(
         uow.commit()
 
 
-def reallocate(
-        event: events.Deallocated,
-        uow: SqlAlchemyUnitOfWork,
-):
-    with uow:
-        product = uow.products.get(event.sku)
-        product.events.append(commands.Allocate(**asdict(event)))
-        uow.commit()
+class ReallocateHandler(CommandHandler):
+
+    def __call__(self,
+            event: events.Deallocated,
+        ):
+        with self.uow:
+            product = self.uow.products.get(event.sku)
+            product.events.append(commands.Allocate(**asdict(event)))
+            self.uow.commit()
 
 def remove_allocation_from_read_model(
         event: events.Deallocated,
@@ -125,9 +128,9 @@ EVENT_HANDLERS = {
     ],
 }
 COMMAND_HANDLERS = {
-    commands.CreateBatch: add_batch,
+    commands.CreateBatch: AddBatchHandler,
     commands.Allocate: AllocateHandler,
-    commands.Deallocate: deallocate,
-    commands.Reallocate: reallocate,
-    commands.ChangeBatchQuantity: change_batch_quantity
+    commands.Deallocate: DeallocateHandler,
+    commands.Reallocate: ReallocateHandler,
+    commands.ChangeBatchQuantity: ChangeBatchQuantityHandler
 }
