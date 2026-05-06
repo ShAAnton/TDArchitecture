@@ -40,10 +40,4 @@ def inject_dependencies(handler, dependencies):
         for name, dependency in dependencies.items()
         if name in params
     }
-    if inspect.isclass(handler):
-        print(f"inject into class {type(handler)}")
-        return handler(**injection)
-    elif inspect.isfunction(handler):
-        print(f"inject into function {type(handler)}")
-        return lambda message: handler(message, **injection)
-    raise TypeError()
+    return lambda message: handler(message, **injection)
