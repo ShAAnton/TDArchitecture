@@ -25,6 +25,24 @@ def allocate(command: commands.Allocate, uow: AbstractionUnitOfWork) -> str:
         uow.commit()
         return batch_ref
 
+
+class AllocateHandler:
+
+    def __init__(self, uow: AbstractionUnitOfWork):
+        self.uow = uow
+
+    def __call__(self, command: commands.Allocate):
+        with self.uow:
+            products = self.uow.products.get(command.sku)
+            if products is None:
+                raise exceptions.InvalidSku(f'Invalid sku {command.sku}')
+            order_line = model.OrderLine(command.order_id, command.sku,
+                                         command.quantity)
+            batch_ref = products.allocate(order_line)
+            self.uow.commit()
+            return batch_ref
+
+
 def deallocate(command: commands.Deallocate, uow: AbstractionUnitOfWork):
     with uow:
         product = uow.products.get(command.sku)
@@ -108,7 +126,7 @@ EVENT_HANDLERS = {
 }
 COMMAND_HANDLERS = {
     commands.CreateBatch: add_batch,
-    commands.Allocate: allocate,
+    commands.Allocate: AllocateHandler,
     commands.Deallocate: deallocate,
     commands.Reallocate: reallocate,
     commands.ChangeBatchQuantity: change_batch_quantity
