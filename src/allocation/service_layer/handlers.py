@@ -1,21 +1,21 @@
 from allocation.domain import model, events, exceptions, commands
-from allocation.adapters import notifications, redis_eventpublisher
 from allocation.service_layer.unit_of_work import AbstractionUnitOfWork, SqlAlchemyUnitOfWork
+from allocation.adapters import notifications
 from dataclasses import asdict
 import abc
 
 
-class CommandHandler(abc.ABC):
-
-    def __init__(self, uow: AbstractionUnitOfWork):
-        self.uow = uow
+class Handler(abc.ABC):
 
     @abc.abstractmethod
     def __call__(self, *args, **kwargs):
         raise NotImplementedError
 
 
-class AddBatchHandler(CommandHandler):
+class AddBatchHandler(Handler):
+
+    def __init__(self, uow: AbstractionUnitOfWork):
+        self.uow = uow
 
     def __call__(self, command: commands.CreateBatch):
         with self.uow:
@@ -28,7 +28,10 @@ class AddBatchHandler(CommandHandler):
             self.uow.commit()
 
 
-class AllocateHandler(CommandHandler):
+class AllocateHandler(Handler):
+
+    def __init__(self, uow: AbstractionUnitOfWork):
+        self.uow = uow
 
     def __call__(self, command: commands.Allocate):
         with self.uow:
@@ -42,7 +45,10 @@ class AllocateHandler(CommandHandler):
             return batch_ref
 
 
-class DeallocateHandler(CommandHandler):
+class DeallocateHandler(Handler):
+
+    def __init__(self, uow: AbstractionUnitOfWork):
+        self.uow = uow
 
     def __call__(self, command: commands.Deallocate):
         with self.uow:
@@ -56,7 +62,10 @@ class DeallocateHandler(CommandHandler):
             self.uow.commit()
             return batch_ref
 
-class ChangeBatchQuantityHandler(CommandHandler):
+class ChangeBatchQuantityHandler(Handler):
+
+    def __init__(self, uow: AbstractionUnitOfWork):
+        self.uow = uow
 
     def __call__(self, command: commands.ChangeBatchQuantity):
         with self.uow:
@@ -65,64 +74,79 @@ class ChangeBatchQuantityHandler(CommandHandler):
             self.uow.commit()
 
 
-def send_out_of_stock_notification(event: events.OutOfStock, notifications: notifications.Notification):
-    notifications.send(
-        'stock@made.com',
-        f'Out of stock for {event.sku}'
-    )
+class SendOutOfStockNotificationHandler(Handler):
 
+    def __init__(self, notifications: notifications.Notification):
+        self.notifications_ = notifications
 
-def publish_allocated_event(
-    event: events.Allocated
-):
-    redis_eventpublisher.publish("line_allocated", event)
-
-def add_allocation_to_read_model(
-        event: events.Allocated,
-        uow: SqlAlchemyUnitOfWork
-):
-    with uow:
-        uow.session.execute(
-            'INSERT INTO allocations_view (order_id, sku, batch_ref)'
-            ' VALUES (:order_id, :sku, :batch_ref)',
-            dict(order_id=event.order_id, sku=event.sku, batch_ref=event.batch_ref)
+    def __call__(self, event: events.OutOfStock):
+        self.notifications_.send(
+            'stock@made.com',
+            f'Out of stock for {event.sku}'
         )
-        uow.commit()
 
 
-class ReallocateHandler(CommandHandler):
+class PublishAllocatedEventHandler(Handler):
 
-    def __call__(self,
-            event: events.Deallocated,
-        ):
+    def __init__(self, publish):
+        self.publish = publish
+
+    def __call__(self, event: events.Allocated):
+        self.publish("line_allocated", event)
+
+
+class AddAllocationToReadModelHandler(Handler):
+
+    def __init__(self, uow: AbstractionUnitOfWork):
+        self.uow = uow
+
+    def __call__(self, event: events.Allocated):
+        with self.uow:
+            self.uow.session.execute(
+                'INSERT INTO allocations_view (order_id, sku, batch_ref)'
+                ' VALUES (:order_id, :sku, :batch_ref)',
+                dict(order_id=event.order_id, sku=event.sku, batch_ref=event.batch_ref)
+            )
+            self.uow.commit()
+
+
+class ReallocateHandler(Handler):
+
+    def __init__(self, uow: AbstractionUnitOfWork):
+        self.uow = uow
+
+    def __call__(self, event: events.Deallocated):
         with self.uow:
             product = self.uow.products.get(event.sku)
             product.events.append(commands.Allocate(**asdict(event)))
             self.uow.commit()
 
-def remove_allocation_from_read_model(
-        event: events.Deallocated,
-        uow: SqlAlchemyUnitOfWork,
-):
-    with uow:
-        uow.session.execute(
-            'DELETE FROM allocations_view '
-            ' WHERE order_id = :order_id AND sku = :sku',
-            dict(order_id=event.order_id, sku=event.sku),
-        )
-        uow.commit()
+
+class RemoveAllocationFromReadModel(Handler):
+
+    def __init__(self, uow: AbstractionUnitOfWork):
+        self.uow = uow
+
+    def __call__(self, event: events.Deallocated):
+        with self.uow:
+            self.uow.session.execute(
+                'DELETE FROM allocations_view '
+                ' WHERE order_id = :order_id AND sku = :sku',
+                dict(order_id=event.order_id, sku=event.sku),
+            )
+            self.uow.commit()
 
 
 EVENT_HANDLERS = {
     events.Allocated: [
-        publish_allocated_event,
-        add_allocation_to_read_model,
+        PublishAllocatedEventHandler,
+        AddAllocationToReadModelHandler,
     ],
     events.Deallocated: [
-        remove_allocation_from_read_model
+        RemoveAllocationFromReadModel
     ],
     events.OutOfStock: [
-        send_out_of_stock_notification
+        SendOutOfStockNotificationHandler
     ],
 }
 COMMAND_HANDLERS = {

@@ -17,7 +17,9 @@ def bootstrap(
     if notifications_ is None:
         notifications_ = notifications.EmailNotification()
 
-    dependencies = {'uow': uow, 'notifications': notifications_, 'publish': publish}
+    dependencies = {'uow': uow,
+                    'notifications': notifications_,
+                    'publish': publish}
     injected_event_handlers = {
         event_type: [
             inject_dependencies(handler, dependencies)
@@ -44,9 +46,5 @@ def inject_dependencies(handler, dependencies):
         if name in params
     }
     if inspect.isclass(handler):
-        print(f"inject into class {type(handler)}")
         return handler(**injection)
-    elif inspect.isfunction(handler):
-        print(f"inject into function {type(handler)}")
-        return lambda message: handler(message, **injection)
-    raise TypeError()
+    raise TypeError(f"Cant inject dependency into {type(handler)}")

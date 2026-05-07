@@ -14,7 +14,7 @@ def sqlite_bus(sqlite_session_factory):
     mbus = bootstrap.bootstrap(
         start_orm=True,
         uow=unit_of_work.SqlAlchemyUnitOfWork(sqlite_session_factory),
-        notifications=lambda *args: None,
+        notifications_=mock.Mock(),
         publish=lambda *args: None,
     )
     yield mbus
@@ -37,7 +37,7 @@ def test_allocations_view(sqlite_bus):
     ]
 
 
-def test_deallocation(sqlite_bus):
+def test_reallocation(sqlite_bus):
     sqlite_bus.handle(commands.CreateBatch("b1", "sku1", 50, None))
     sqlite_bus.handle(commands.CreateBatch("b2", "sku1", 50, today))
     sqlite_bus.handle(commands.Allocate("o1", "sku1", 40))
