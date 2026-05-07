@@ -1,6 +1,6 @@
 from allocation.domain import model, events, exceptions, commands
 from allocation.service_layer.unit_of_work import AbstractionUnitOfWork, SqlAlchemyUnitOfWork
-from allocation.adapters import notifications
+from allocation.adapters import notifications, eventpublisher
 from dataclasses import asdict
 import abc
 
@@ -88,11 +88,11 @@ class SendOutOfStockNotificationHandler(Handler):
 
 class PublishAllocatedEventHandler(Handler):
 
-    def __init__(self, publish):
+    def __init__(self, publish: eventpublisher.Publisher):
         self.publish = publish
 
     def __call__(self, event: events.Allocated):
-        self.publish("line_allocated", event)
+        self.publish.publish("line_allocated", event)
 
 
 class AddAllocationToReadModelHandler(Handler):
