@@ -16,17 +16,15 @@ from src.allocation.entrypoints.event_channels import ChannelEventConsumerOnline
 
 
 @pytest.fixture
-def in_memory_db():
+def in_memory_sqlite_db():
     engine = create_engine("sqlite:///:memory:")
     orm.metadata.create_all(engine)
     return engine
 
 
 @pytest.fixture
-def sqlite_session_factory(in_memory_db):
-    orm.start_mappers()
-    yield orm.sessionmaker(bind=in_memory_db)
-    clear_mappers()
+def sqlite_session_factory(in_memory_sqlite_db):
+    yield orm.sessionmaker(bind=in_memory_sqlite_db)
 
 
 @pytest.fixture
@@ -44,9 +42,19 @@ def postgres_db():
 
 @pytest.fixture
 def postgres_session_factory(postgres_db):
-    orm.start_mappers()
     yield orm.sessionmaker(bind=postgres_db)
-    clear_mappers()
+
+
+@pytest.fixture
+def postgres_session(postgres_session_factory):
+    return postgres_session_factory()
+
+
+@pytest.fixture
+def mappers():
+    orm.start_mappers()
+    yield
+    orm.clear_mappers()
 
 
 @retry(stop=stop_after_delay(5))
@@ -60,14 +68,14 @@ def wait_for_webapp_to_come_up():
     return requests.get(url)
 
 
-@retry(stop=stop_after_delay(10))
+@retry(stop=stop_after_delay(5))
 def wait_for_redis_to_come_up():
     r = redis.Redis(**config.get_redis_host_and_port())
     return r.ping()
 
 
 def wait_for_redis_pubsub_to_come_up():
-    stop_after_attempt = 10
+    stop_after_attempt = 5
     r = redis.Redis(**config.get_redis_host_and_port())
     pubsub = r.pubsub(ignore_subscribe_messages=True)
     pubsub.subscribe(ChannelEventConsumerOnline.channel_name)

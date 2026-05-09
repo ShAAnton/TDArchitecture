@@ -1,5 +1,8 @@
 from allocation.domain import model
 from allocation.adapters import repository
+import pytest
+
+pytestmark = pytest.mark.usefixtures("mappers")
 
 def test_get_by_batch_ref(sqlite_session):
     repo = repository.SQLAlchemyRepository(sqlite_session)

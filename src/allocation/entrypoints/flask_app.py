@@ -1,14 +1,15 @@
 from flask import Flask, jsonify, request
 
+from allocation import bootstrap
 from allocation.domain import commands, exceptions
-from allocation.adapters import orm
 from allocation import views
 from allocation.service_layer import unit_of_work, message_bus
 
 import datetime
 
 app = Flask(__name__)
-orm.start_mappers()
+mbus = bootstrap.bootstrap()
+
 
 @app.route("/add_batch", methods=['POST'])
 def add_batch():
@@ -21,8 +22,7 @@ def add_batch():
         quantity=request.json['quantity'],
         eta=eta
     )
-    uow = unit_of_work.SqlAlchemyUnitOfWork()
-    message_bus.MessageBus(uow).handle(cmd)
+    mbus.handle(cmd)
     return 'OK', 201
 
 @app.route("/deallocate", methods=['POST'])
@@ -33,8 +33,7 @@ def deallocate_endpoint():
             sku=request.json['sku'],
             quantity=request.json['quantity']
         )
-        uow = unit_of_work.SqlAlchemyUnitOfWork()
-        message_bus.MessageBus(uow).handle(cmd)
+        mbus.handle(cmd)
     except (exceptions.NotAllocatedLine, exceptions.InvalidSku) as e:
         return jsonify({'message': str(e)}), 400
 
@@ -49,8 +48,7 @@ def allocate_endpoint():
             sku=request.json['sku'],
             quantity=request.json['quantity']
         )
-        uow = unit_of_work.SqlAlchemyUnitOfWork()
-        message_bus.MessageBus(uow).handle(cmd)
+        mbus.handle(cmd)
     except exceptions.InvalidSku as e:
         return jsonify({'message': str(e)}), 400
 
@@ -59,8 +57,7 @@ def allocate_endpoint():
 
 @app.route("/allocations/<order_id>", methods=["GET"])
 def allocations_view_endpoint(order_id):
-    uow = unit_of_work.SqlAlchemyUnitOfWork()
-    result = views.allocations(order_id, uow)
+    result = views.allocations(order_id, mbus.uow)
     if not result:
         return "not found", 404
     return jsonify(result), 200

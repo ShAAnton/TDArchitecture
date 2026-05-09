@@ -1,37 +1,48 @@
 from allocation.service_layer import unit_of_work, message_bus
+from allocation.adapters import orm
 from allocation.domain import commands
-from allocation import views
+from allocation import views, bootstrap
 from datetime import date
+import pytest
+from unittest import mock
 
 today = date.today()
 
 
-def test_allocations_view(sqlite_session_factory):
-    uow = unit_of_work.SqlAlchemyUnitOfWork(sqlite_session_factory)
-    mb = message_bus.MessageBus(uow)
-    mb.handle(commands.CreateBatch('sku1batch', 'sku1', 50, None))
-    mb.handle(commands.CreateBatch('sku2batch', 'sku2', 50, today))
-    mb.handle(commands.Allocate('order1', 'sku1', 20))
-    mb.handle(commands.Allocate('order1', 'sku2', 20))
-    # add a spurious batch and order to make sure we are getting the right one
-    mb.handle(commands.CreateBatch('sku1batch-later', 'sku1', 50, today))
-    mb.handle(commands.Allocate('otherorder', 'sku1', 30))
-    mb.handle(commands.Allocate('otherorder', 'sku2', 10))
+@pytest.fixture
+def sqlite_bus(sqlite_session_factory):
+    mbus = bootstrap.bootstrap(
+        start_orm=True,
+        uow=unit_of_work.SqlAlchemyUnitOfWork(sqlite_session_factory),
+        notifications_=mock.Mock(),
+        publish=lambda *args: None,
+    )
+    yield mbus
+    orm.clear_mappers()
 
-    assert views.allocations('order1', uow) == [
+
+def test_allocations_view(sqlite_bus):
+    sqlite_bus.handle(commands.CreateBatch('sku1batch', 'sku1', 50, None))
+    sqlite_bus.handle(commands.CreateBatch('sku2batch', 'sku2', 50, today))
+    sqlite_bus.handle(commands.Allocate('order1', 'sku1', 20))
+    sqlite_bus.handle(commands.Allocate('order1', 'sku2', 20))
+    # add a spurious batch and order to make sure we are getting the right one
+    sqlite_bus.handle(commands.CreateBatch('sku1batch-later', 'sku1', 50, today))
+    sqlite_bus.handle(commands.Allocate('otherorder', 'sku1', 30))
+    sqlite_bus.handle(commands.Allocate('otherorder', 'sku2', 10))
+
+    assert views.allocations('order1', sqlite_bus.uow) == [
         {'sku': 'sku1', 'batch_ref': 'sku1batch'},
         {'sku': 'sku2', 'batch_ref': 'sku2batch'},
     ]
 
 
-def test_deallocation(sqlite_session_factory):
-    uow = unit_of_work.SqlAlchemyUnitOfWork(sqlite_session_factory)
-    mb = message_bus.MessageBus(uow)
-    mb.handle(commands.CreateBatch("b1", "sku1", 50, None))
-    mb.handle(commands.CreateBatch("b2", "sku1", 50, today))
-    mb.handle(commands.Allocate("o1", "sku1", 40))
-    mb.handle(commands.ChangeBatchQuantity("b1", 10))
+def test_reallocation(sqlite_bus):
+    sqlite_bus.handle(commands.CreateBatch("b1", "sku1", 50, None))
+    sqlite_bus.handle(commands.CreateBatch("b2", "sku1", 50, today))
+    sqlite_bus.handle(commands.Allocate("o1", "sku1", 40))
+    sqlite_bus.handle(commands.ChangeBatchQuantity("b1", 10))
 
-    assert views.allocations("o1", uow) == [
+    assert views.allocations("o1", sqlite_bus.uow) == [
         {"sku": "sku1", "batch_ref": "b2"},
     ]

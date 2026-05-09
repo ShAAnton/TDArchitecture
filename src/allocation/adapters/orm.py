@@ -1,7 +1,7 @@
 import sqlalchemy.event
 from sqlalchemy import *
 from sqlalchemy import orm
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, clear_mappers
 
 from allocation.domain import model
 
