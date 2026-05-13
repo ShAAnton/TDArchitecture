@@ -1,3 +1,9 @@
+import shutil
+import tempfile
+from pathlib import Path
+import csv
+
+
 import pytest
 import time
 import requests
@@ -6,6 +12,7 @@ from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import clear_mappers
 from src.allocation.adapters import orm
 from src.allocation import config
+
 
 
 @pytest.fixture
@@ -66,3 +73,19 @@ def restart_api():
     # (Path(__file__).parent / "flask_app.py").touch()
     # time.sleep(0.5)
     wait_for_webapp_to_come_up()
+
+
+@pytest.fixture
+def make_csv():
+    tmp_dir = tempfile.mkdtemp()
+    try:
+        def _make_csv(filename, lines):
+            path = Path(tmp_dir) / filename
+            with path.open("w") as f:
+                writer = csv.writer(f)
+                writer.writerows(lines)
+            return path
+
+        yield _make_csv
+    finally:
+        shutil.rmtree(tmp_dir)
