@@ -82,7 +82,7 @@ def make_csv():
         def _make_csv(filename, lines):
             path = Path(tmp_dir) / filename
             with path.open("w") as f:
-                writer = csv.writer(f)
+                writer = csv.writer(f, lineterminator='\n')
                 writer.writerows(lines)
             return path
 

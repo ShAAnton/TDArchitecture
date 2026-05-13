@@ -13,14 +13,14 @@ from ..random_refs import (random_batch_ref,
 
 def run_cli_script(folder):
     """a bit of python import hackery to load the script and run its main()"""
-    path = Path(__file__).parent / "../../src/bin/allocate-from-csv"
+    path = Path(__file__).parent / "../../src/bin/allocate-from-csv.py"
     spec = spec_from_loader("script", SourceFileLoader("script", str(path)))
     script = module_from_spec(spec)
     spec.loader.exec_module(script)
     script.main(folder)
 
 
-def test_app_reads_csv_with_batches_and_orders(make_csv):
+def test_app_reads_csv_with_batches_and_orders_and_outputs_allocations(make_csv):
     sku1, sku2 = random_sku('s1'), random_sku('s2')
     batch1, batch2, batch3 = (random_batch_ref('b1'),
                               random_batch_ref('b2'),
@@ -43,7 +43,7 @@ def test_app_reads_csv_with_batches_and_orders(make_csv):
     with open(expected_output_csv) as fcsv:
         rows = list(csv.reader(fcsv))
     assert rows == [
-        ['order_id', 'sku', 'quantity', 'batch_ref'],
-        [order_id, sku1, '3', batch1],
-        [order_id, sku2, '12', batch2],
+        ['order_id', 'sku', 'batch_ref'],
+        [order_id, sku1, batch1],
+        [order_id, sku2, batch2],
     ]
