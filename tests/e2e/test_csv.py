@@ -47,3 +47,33 @@ def test_app_reads_csv_with_batches_and_orders_and_outputs_allocations(make_csv)
         [order_id, sku1, batch1],
         [order_id, sku2, batch2],
     ]
+
+
+def test_cli_app_reads_existing_allocations_and_can_append_to_them(make_csv):
+    sku = random_sku('s')
+    batch1, batch2 = random_batch_ref('b1'), random_batch_ref('b2')
+    old_order, new_order = random_order_id('o1'), random_order_id('o2')
+    make_csv('batches.csv', [
+        ['batch_ref', 'sku', 'quantity', 'eta'],
+        [batch1, sku, 10, '2026-05-12'],
+        [batch2, sku, 10, '2026-05-13'],
+    ])
+    make_csv('allocations.csv', [
+        ['order_id', 'slu', 'batch_ref'],
+        [old_order, sku, batch1],
+    ])
+    order_csv = make_csv('orders.csv', [
+        ['order_id', 'sku', 'quantity'],
+        [new_order, sku, 7],
+    ])
+
+    run_cli_script(order_csv.parent)
+
+    expected_output_csv = order_csv.parent / 'allocations.csv'
+    with open(expected_output_csv) as f:
+        rows = list(csv.reader(f))
+    assert rows == [
+        ['order_id', 'sku', 'batch_ref'],
+        [old_order, sku, batch1],
+        [new_order, sku, batch2],
+    ]
