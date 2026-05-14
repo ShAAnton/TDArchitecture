@@ -1,4 +1,6 @@
 import abc
+import csv
+
 import allocation.adapters.repository as repository
 
 from allocation import config
@@ -44,3 +46,21 @@ class SqlAlchemyUnitOfWork(AbstractionUnitOfWork):
 
     def rollback(self):
         self.session.rollback()
+
+
+class CSVUnitOfWork(AbstractionUnitOfWork):
+    def __init__(self, folder):
+        self.batches = repository.CSVRepository(folder)
+
+    def commit(self):
+        with self.batches._allocations_path.open('w') as f_all:
+            writer = csv.writer(f_all, lineterminator='\n')
+            writer.writerow(['order_id', 'sku', 'quantity', 'batch_ref'])
+            for batch in self.batches.list():
+                for line in batch._allocations:
+                    writer.writerow(
+                        [line.order_id, line.sku, line.quantity, batch.reference]
+                    )
+
+    def rollback(self):
+        pass

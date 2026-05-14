@@ -1,8 +1,5 @@
 import csv
 
-import pytest
-from allocation import config
-import requests
 from importlib.util import spec_from_loader, module_from_spec
 from importlib.machinery import SourceFileLoader
 from pathlib import Path
@@ -43,9 +40,9 @@ def test_app_reads_csv_with_batches_and_orders_and_outputs_allocations(make_csv)
     with open(expected_output_csv) as fcsv:
         rows = list(csv.reader(fcsv))
     assert rows == [
-        ['order_id', 'sku', 'batch_ref'],
-        [order_id, sku1, batch1],
-        [order_id, sku2, batch2],
+        ['order_id', 'sku', 'quantity', 'batch_ref'],
+        [order_id, sku1, '3', batch1],
+        [order_id, sku2, '12', batch2],
     ]
 
 
@@ -59,8 +56,8 @@ def test_cli_app_reads_existing_allocations_and_can_append_to_them(make_csv):
         [batch2, sku, 10, '2026-05-13'],
     ])
     make_csv('allocations.csv', [
-        ['order_id', 'slu', 'batch_ref'],
-        [old_order, sku, batch1],
+        ['order_id', 'sku', 'quantity', 'batch_ref'],
+        [old_order, sku, 10, batch1],
     ])
     order_csv = make_csv('orders.csv', [
         ['order_id', 'sku', 'quantity'],
@@ -73,7 +70,7 @@ def test_cli_app_reads_existing_allocations_and_can_append_to_them(make_csv):
     with open(expected_output_csv) as f:
         rows = list(csv.reader(f))
     assert rows == [
-        ['order_id', 'sku', 'batch_ref'],
-        [old_order, sku, batch1],
-        [new_order, sku, batch2],
+        ['order_id', 'sku', 'quantity', 'batch_ref'],
+        [old_order, sku, '10', batch1],
+        [new_order, sku, '7', batch2],
     ]
